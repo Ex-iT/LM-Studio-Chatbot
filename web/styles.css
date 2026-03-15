@@ -21,6 +21,11 @@ body {
   display: grid;
   grid-template-columns: 280px 1fr;
   min-height: 100vh;
+  transition: grid-template-columns 0.3s ease;
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 80px 1fr;
 }
 
 .sidebar {
@@ -30,6 +35,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  overflow: hidden;
+  position: relative;
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar-collapsed .sidebar {
+  padding: 1rem 0.5rem;
 }
 
 .sidebar__header {
@@ -40,6 +52,69 @@ body {
 
 .sidebar__title {
   margin-bottom: 1rem;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+/* .sidebar-collapsed .sidebar__title, */
+.sidebar-collapsed .chat-list__delete-btn {
+  display: none;
+}
+
+.sidebar-collapsed .sidebar__header .btn,
+.sidebar-collapsed .chat-list__item {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  margin: 0.2rem auto;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--chat-color) 25%, transparent);
+  opacity: 1;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.sidebar-collapsed .sidebar__header .btn {
+  background: #38bdf8 !important;
+  color: #0f172a;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.sidebar-collapsed .chat-list {
+  gap: 0;
+}
+
+.sidebar-collapsed .chat-list__item-container.active .chat-list__item {
+  box-shadow: 0 0 0 3px #38bdf8;
+  background: color-mix(in srgb, var(--chat-color) 50%, transparent) !important;
+}
+
+.sidebar-collapsed .sidebar__header .btn::before {
+  content: "+";
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.sidebar-collapsed .chat-list__item-container.active {
+  background: transparent;
+}
+
+.sidebar-collapsed .chat-list__item::before {
+  padding-right: 0;
+}
+
+.chat-list__item::before {
+  content: "💬";
+  font-size: 1rem;
+  padding-right: 0.5rem;
+}
+
+.chat-list__item-container {
+  justify-content: center;
 }
 
 .chat-list {
@@ -47,23 +122,35 @@ body {
   flex-direction: column;
   gap: 0.5rem;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
 }
 
-.chat-list__item {
+.chat-list__item.btn.ghost {
   flex: 1;
   text-align: left;
   border: 1px solid transparent;
   padding: 0.75rem;
   border-radius: 0.5rem;
-  background: rgba(148, 163, 184, 0.1);
+  background: color-mix(in srgb, var(--chat-color, #94a3b8) 25%, transparent);
   cursor: pointer;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: all 0.2s ease;
+  border-left: 4px solid var(--chat-color, transparent);
 }
 
-/* Active styles moved down to maintain precedence */
+.chat-list__item.btn.ghost:hover {
+  background: color-mix(in srgb, var(--chat-color, #94a3b8) 40%, transparent);
+}
+
+.chat-list__item-container.active .chat-list__item.btn.ghost {
+  background: color-mix(in srgb, var(--chat-color, #38bdf8) 40%, transparent);
+  border-color: #38bdf8;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
 
 .chat-list__item-container {
   display: flex;
@@ -77,11 +164,6 @@ body {
   background: rgba(56, 189, 248, 0.1);
 }
 
-.chat-list__item-container.active .chat-list__item {
-  border-color: #38bdf8;
-  background: rgba(56, 189, 248, 0.2);
-  color: #fff;
-}
 
 .chat-list__delete-btn {
   border: none;
@@ -96,6 +178,33 @@ body {
 .chat-list__delete-btn:hover {
   background: rgba(248, 113, 113, 0.2);
   color: #f87171;
+}
+.sidebar__toggle {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  background: rgba(148, 163, 184, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+  border-radius: 0.4rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.sidebar-collapsed .sidebar__toggle {
+  right: 0.75rem;
+  transform: rotate(180deg);
+}
+
+.sidebar__toggle:hover {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
 }
 
 .chat-panel {
@@ -183,9 +292,14 @@ body {
 }
 
 .btn.primary {
-  background: #38bdf8;
+  background: color-mix(in srgb, #38bdf8 75%, transparent);
   color: #0f172a;
   font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.btn.primary:hover {
+  background: #38bdf8;
 }
 
 .btn.ghost {
@@ -363,14 +477,6 @@ body {
 }
 
 @media (max-width: 900px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    height: 40vh;
-  }
-
   .chat-panel {
     height: auto;
     min-height: 60vh;

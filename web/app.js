@@ -1,7 +1,8 @@
 const STORAGE_KEY = "lm_tts_chats_v1";
-const TEMP_KEY = "lm_tts_temperature";
-const VOICE_KEY = "lm_tts_voice";
-const MODEL_KEY = "lm_tts_selected_model";
+const TEMP_KEY = "kokoro_temperature";
+const VOICE_KEY = "kokoro_voice";
+const MODEL_KEY = "kokoro_model";
+
 const DEFAULT_SYSTEM_PROMPT =
   "You are a helpful AI assistant who responds concisely and clearly. Keep answers friendly and readable. Make sure your answers are suitable to be read aloud by a text-to-speech engine.";
 
@@ -23,11 +24,15 @@ const elements = {
   systemPromptInput: document.getElementById("system-prompt-input"),
   applySystemPromptBtn: document.getElementById("apply-system-prompt"),
   closeSystemPromptBtn: document.getElementById("close-system-prompt"),
+  sidebar: document.querySelector(".sidebar"),
+  sidebarToggle: document.getElementById("sidebar-toggle"),
+  appShell: document.querySelector(".app-shell"),
 };
 
 const state = {
   chats: [],
   activeChatId: null,
+  sidebarCollapsed: false,
   pending: false,
   temperature: 0.7,
   status: "",
@@ -42,12 +47,29 @@ const state = {
 
 let audioPlayer = null;
 
+function generateRandomSoftColor() {
+  const hue = Math.floor(Math.random() * 360);
+  const saturation = 65; // Soft saturation
+  const lightness = 65;   // Soft lightness
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
+
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
   loadState();
   bindEvents();
   bindSystemPromptEvents();
+  bindSidebarEvents();
+
+  // Apply initial sidebar state
+  updateSidebarUI();
+
+  // Initial check for responsive collapse
+  if (window.innerWidth < 768) {
+    state.sidebarCollapsed = true;
+    updateSidebarUI();
+  }
 
   if (!state.chats.length) {
     const chat = createChat();
@@ -148,6 +170,30 @@ function bindEvents() {
     event.preventDefault();
     elements.composer.requestSubmit();
   });
+
+  window.addEventListener("resize", () => {
+    if (window.innerWidth < 768 && !state.sidebarCollapsed) {
+      state.sidebarCollapsed = true;
+      updateSidebarUI();
+      saveState();
+    } else if (window.innerWidth >= 768 && state.sidebarCollapsed) {
+      state.sidebarCollapsed = false;
+      updateSidebarUI();
+      saveState();
+    }
+  });
+}
+
+function bindSidebarEvents() {
+  elements.sidebarToggle.addEventListener("click", () => {
+    state.sidebarCollapsed = !state.sidebarCollapsed;
+    updateSidebarUI();
+    saveState();
+  });
+}
+
+function updateSidebarUI() {
+  elements.appShell.classList.toggle("sidebar-collapsed", state.sidebarCollapsed);
 }
 
 function bindSystemPromptEvents() {
@@ -171,6 +217,14 @@ function loadState() {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
     state.chats = stored.chats ?? [];
     state.activeChatId = stored.activeChatId ?? null;
+    state.sidebarCollapsed = stored.sidebarCollapsed ?? false;
+
+    // Ensure all chats have a color
+    state.chats.forEach(chat => {
+      if (!chat.color) {
+        chat.color = generateRandomSoftColor();
+      }
+    });
   } catch (error) {
     console.warn("Failed to load chats", error);
     state.chats = [];
@@ -189,6 +243,7 @@ function saveState() {
       messages: chat.messages.map(({ audioUrl, ...rest }) => rest),
     })),
     activeChatId: state.activeChatId,
+    sidebarCollapsed: state.sidebarCollapsed,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -198,6 +253,7 @@ function createChat() {
   return {
     id: newId(),
     title: "New chat",
+    color: generateRandomSoftColor(),
     createdAt: now,
     messages: [
       {
@@ -244,6 +300,7 @@ function renderChatList() {
     if (chat.id === state.activeChatId) {
       btn.classList.add("active");
     }
+    btn.style.setProperty("--chat-color", chat.color);
     btn.textContent = chat.title || "Untitled chat";
     btn.addEventListener("click", () => {
       state.activeChatId = chat.id;
