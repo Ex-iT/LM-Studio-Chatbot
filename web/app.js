@@ -302,6 +302,7 @@ function renderChatList() {
     }
     btn.style.setProperty("--chat-color", chat.color);
     btn.textContent = chat.title || "Untitled chat";
+    btn.title = chat.title || "Untitled chat";
     btn.addEventListener("click", () => {
       state.activeChatId = chat.id;
       saveState();
@@ -599,7 +600,7 @@ async function speakAssistantMessage(messageId) {
       playAudio(message.audioUrl);
       return;
     }
-    setStatus("Generating speech…", false);
+    setStatus("Generating speech<span class='loader green'></span>", false);
     const audioUrl = await fetchTTS(message.content, selectedVoice);
     message.audioUrl = audioUrl;
     message.voice = selectedVoice;
@@ -781,7 +782,7 @@ function branchChatFromMessage(messageId) {
 
 function setStatus(message, isError = true) {
   state.status = message;
-  elements.status.textContent = message || "";
+  elements.status.innerHTML = message || "";
   if (!message) {
     elements.status.style.color = "#94a3b8";
     return;

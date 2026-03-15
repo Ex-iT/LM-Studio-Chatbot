@@ -77,12 +77,13 @@
         <form id="composer" class="composer">
           <textarea
             id="prompt-input"
-            placeholder="Type your next message..."
+            placeholder="Type a message..."
+            title=""
             rows="3"
             required
           ></textarea>
           <div class="composer__actions">
-            <span id="pending-indicator" class="pending hidden">Thinking…</span>
+            <span id="pending-indicator" class="pending hidden">Thinking<span class="loader yellow"></span></span>
             <button type="submit" class="btn primary">Send</button>
           </div>
         </form>

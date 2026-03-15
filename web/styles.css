@@ -502,6 +502,24 @@ body {
   visibility: hidden;
 }
 
+.loader {
+  display: inline-block;
+  width: 10px;
+  aspect-ratio: 5;
+  background: radial-gradient(circle closest-side,#fff 90%,#0000) 0/calc(100%/3) 100% space;
+  clip-path: inset(0 100% 0 0);
+  animation: loader 1.5s steps(4) infinite;
+}
+.loader.green {
+  background: radial-gradient(circle closest-side,#4ade80 90%,#0000) 0/calc(100%/3) 100% space;
+}
+.loader.yellow {
+  background: radial-gradient(circle closest-side,#facc15 90%,#0000) 0/calc(100%/3) 100% space;
+}
+
+@keyframes loader {to { clip-path: inset(0 -34% 0 0) } }
+
+
 @media (max-width: 900px) {
   .chat-panel {
     height: auto;
