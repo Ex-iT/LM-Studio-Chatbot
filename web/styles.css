@@ -55,7 +55,24 @@ body {
   transition: opacity 0.2s ease, visibility 0.2s ease;
 }
 
-/* .sidebar-collapsed .sidebar__title, */
+.main-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.main-icon {
+  display: inline-flex;
+  width: 2rem;
+  height: auto;
+}
+
+.sidebar-collapsed .main-icon {
+  margin: 0 auto;
+}
+
+.sidebar-collapsed .sidebar__title strong,
+.sidebar-collapsed .sidebar__title .subtitle,
 .sidebar-collapsed .chat-list__delete-btn {
   display: none;
 }
