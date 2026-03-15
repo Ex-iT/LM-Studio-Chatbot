@@ -96,9 +96,13 @@ body {
 }
 
 .sidebar-collapsed .sidebar__header .btn {
-  background: #38bdf8 !important;
+  background: color-mix(in srgb, var(--chat-color, #38bdf8) 75%, transparent);
   color: #0f172a;
   box-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.sidebar-collapsed .sidebar__header .btn:hover {
+  background: #38bdf8;
 }
 
 .sidebar-collapsed .chat-list {
@@ -322,6 +326,10 @@ body {
 .btn.ghost {
   background: rgba(148, 163, 184, 0.2);
   color: #f8fafc;
+}
+
+.btn.ghost:hover {
+  background: rgba(148, 163, 184, 0.4);
 }
 
 .btn:disabled {
