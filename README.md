@@ -1,6 +1,6 @@
 # TTS Chat Assistant (LM Studio + Kokoro)
 
-Small Flask app that lets you chat with an LM Studio model and hear the replies via Kokoro text-to-speech. The `web/` frontend talks to two endpoints: `/api/chat` for combined text + audio replies and `/api/tts` for on-demand speech.
+Small Flask app that lets you chat with an [LM Studio](https://lmstudio.ai/) model and hear the replies via [Kokoro](https://github.com/hexgrad/Kokoro) text-to-speech. The `web/` frontend talks to two endpoints: `/api/chat` for combined text + audio replies and `/api/tts` for on-demand speech.
 
 ## Requirements
 
