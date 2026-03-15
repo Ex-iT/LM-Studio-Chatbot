@@ -10,7 +10,12 @@
     <div class="app-shell">
       <aside class="sidebar">
         <div class="sidebar__header">
-          <h1>LM&nbsp;TTS</h1>
+          <div class="sidebar__title">
+            <strong>TTS Chat Assistant</strong>
+            <p class="subtitle">
+              Powered by LM Studio + Kokoro
+            </p>
+          </div>
           <button id="new-chat-btn" class="btn primary">New Chat</button>
         </div>
         <div id="chat-list" class="chat-list"></div>
@@ -18,12 +23,6 @@
 
       <main class="chat-panel">
         <header class="chat-toolbar">
-          <div>
-            <strong>LM Studio Assistant</strong>
-            <p class="subtitle">
-              Powered by LM Studio + Kokoro
-            </p>
-          </div>
           <div class="toolbar-actions">
             <label class="model-control">
               <span>Model</span>
@@ -57,16 +56,16 @@
               Stop Audio
             </button>
           </div>
-        </header>
 
-        <section id="system-prompt-panel" class="system-prompt-panel hidden">
-          <label for="system-prompt-input">System Prompt</label>
-          <textarea id="system-prompt-input" rows="3"></textarea>
-          <div class="panel-actions">
-            <button id="apply-system-prompt" class="btn primary small">Apply</button>
-            <button id="close-system-prompt" class="btn ghost small">Close</button>
-          </div>
-        </section>
+          <section id="system-prompt-panel" class="system-prompt-panel hidden">
+            <label for="system-prompt-input">System Prompt</label>
+            <textarea id="system-prompt-input" rows="3"></textarea>
+            <div class="panel-actions">
+              <button id="apply-system-prompt" class="btn primary small">Apply</button>
+              <button id="close-system-prompt" class="btn ghost small">Close</button>
+            </div>
+          </section>
+        </header>
 
         <section id="status" class="status" role="status"></section>
 

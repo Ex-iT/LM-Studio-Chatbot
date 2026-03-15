@@ -1,4 +1,4 @@
-# LM TTS (LM Studio + Kokoro)
+# LM Studio TTS Chat Assistant (LM Studio + Kokoro)
 
 Small Flask app that lets you chat with an LM Studio model and hear the replies via Kokoro text-to-speech. The `web/` frontend talks to two endpoints: `/api/chat` for combined text + audio replies and `/api/tts` for on-demand speech.
 
@@ -28,18 +28,19 @@ Small Flask app that lets you chat with an LM Studio model and hear the replies 
 
 All settings can be passed as command-line arguments or environment variables. Arguments take precedence.
 
-| Argument | Env Variable | Description | Default |
-| :--- | :--- | :--- | :--- |
-| `--base-url` | `LMSTUDIO_BASE_URL` | Base URL for the LM Studio API | `http://127.0.0.1:1234/v1` |
-| `--api-key` | `LMSTUDIO_API_KEY` | API key for LM Studio | `lm-studio` |
-| `--model-name` | `LMSTUDIO_MODEL_NAME` | Force a specific model ID | (auto-detect) |
-| `--repo-id` | `KOKORO_REPO_ID` | HF repo for Kokoro weights | `hexgrad/Kokoro-82M` |
-| `--lang` | `KOKORO_LANG` | Default language code | `a` |
-| `--voice` | `KOKORO_VOICE` | Default voice name | `af_nicole` |
-| `--sample-rate` | `KOKORO_SAMPLE_RATE` | Output sample rate | `24000` |
-| `--port` | `PORT` | Server port | `5000` |
+| Argument        | Env Variable          | Description                    | Default                    |
+| :-------------- | :-------------------- | :----------------------------- | :------------------------- |
+| `--base-url`    | `LMSTUDIO_BASE_URL`   | Base URL for the LM Studio API | `http://127.0.0.1:1234/v1` |
+| `--api-key`     | `LMSTUDIO_API_KEY`    | API key for LM Studio          | `lm-studio`                |
+| `--model-name`  | `LMSTUDIO_MODEL_NAME` | Force a specific model ID      | (auto-detect)              |
+| `--repo-id`     | `KOKORO_REPO_ID`      | HF repo for Kokoro weights     | `hexgrad/Kokoro-82M`       |
+| `--lang`        | `KOKORO_LANG`         | Default language code          | `a`                        |
+| `--voice`       | `KOKORO_VOICE`        | Default voice name             | `af_nicole`                |
+| `--sample-rate` | `KOKORO_SAMPLE_RATE`  | Output sample rate             | `24000`                    |
+| `--port`        | `PORT`                | Server port                    | `5000`                     |
 
 Example using arguments:
+
 ```bash
 python server.py --port 5001 --voice af_bella
 ```
