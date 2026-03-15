@@ -5,6 +5,7 @@ import re
 import threading
 import time
 import wave
+import argparse
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -16,13 +17,27 @@ from kokoro import KModel, KPipeline
 from openai import OpenAI
 
 # ---------- Configuration ----------
-LMSTUDIO_BASE_URL = os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
-LMSTUDIO_API_KEY = os.getenv("LMSTUDIO_API_KEY", "lm-studio")
-LMSTUDIO_MODEL_NAME = os.getenv("LMSTUDIO_MODEL_NAME")  # None => auto-detect
+def parse_args():
+    parser = argparse.ArgumentParser(description="LM-Studio Chatbot with Kokoro TTS")
+    parser.add_argument("--base-url", default=os.getenv("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1"), help="Base URL for the LM Studio API (default: http://127.0.0.1:1234/v1)")
+    parser.add_argument("--api-key", default=os.getenv("LMSTUDIO_API_KEY", "lm-studio"), help="API key for LM Studio (default: lm-studio)")
+    parser.add_argument("--model-name", default=os.getenv("LMSTUDIO_MODEL_NAME"), help="Force a specific model ID; omit to auto-pick the first loaded model")
+    parser.add_argument("--repo-id", default=os.getenv("KOKORO_REPO_ID", "hexgrad/Kokoro-82M"), help="Hugging Face repo for Kokoro weights (default: hexgrad/Kokoro-82M)")
+    parser.add_argument("--lang", default=os.getenv("KOKORO_LANG", "a"), help="Default language code used when parsing VOICES.md (single letter, default: a)")
+    parser.add_argument("--voice", default=os.getenv("KOKORO_VOICE"), help="Default voice name; must exist in VOICES.md")
+    parser.add_argument("--sample-rate", type=int, default=int(os.getenv("KOKORO_SAMPLE_RATE", "24000")), help="Output sample rate (default: 24000)")
+    parser.add_argument("--port", type=int, default=int(os.getenv("PORT", "5000")), help="Server port (default: 5000)")
+    return parser.parse_args()
 
-KOKORO_REPO_ID = os.getenv("KOKORO_REPO_ID", "hexgrad/Kokoro-82M")
-KOKORO_DEFAULT_LANG = os.getenv("KOKORO_LANG", "a")
-SAMPLE_RATE = int(os.getenv("KOKORO_SAMPLE_RATE", "24000"))
+args = parse_args()
+
+LMSTUDIO_BASE_URL = args.base_url
+LMSTUDIO_API_KEY = args.api_key
+LMSTUDIO_MODEL_NAME = args.model_name
+KOKORO_REPO_ID = args.repo_id
+KOKORO_DEFAULT_LANG = args.lang
+SAMPLE_RATE = args.sample_rate
+PORT = args.port
 VOICES_PATH = Path(__file__).with_name("VOICES.md")
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "web")
@@ -95,9 +110,9 @@ MODEL_CACHE_TTL = 30.0  # seconds
 
 voice_catalog = _parse_voice_catalog(VOICES_PATH, KOKORO_DEFAULT_LANG)
 PREFERRED_DEFAULT_VOICE = "af_nicole"
-env_default_voice = os.getenv("KOKORO_VOICE")
-if env_default_voice and env_default_voice in voice_catalog:
-    DEFAULT_VOICE = env_default_voice
+cli_default_voice = args.voice
+if cli_default_voice and cli_default_voice in voice_catalog:
+    DEFAULT_VOICE = cli_default_voice
 elif PREFERRED_DEFAULT_VOICE in voice_catalog:
     DEFAULT_VOICE = PREFERRED_DEFAULT_VOICE
 else:
@@ -310,5 +325,4 @@ def not_found(_):
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=PORT, debug=True)

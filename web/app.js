@@ -3,7 +3,7 @@ const TEMP_KEY = "lm_tts_temperature";
 const VOICE_KEY = "lm_tts_voice";
 const MODEL_KEY = "lm_tts_selected_model";
 const DEFAULT_SYSTEM_PROMPT =
-  "You are a helpful AI assistant who responds concisely and clearly. Keep answers friendly and readable.";
+  "You are a helpful AI assistant who responds concisely and clearly. Keep answers friendly and readable. Make sure your answers are suitable to be read aloud by a text-to-speech engine.";
 
 const elements = {
   chatList: document.getElementById("chat-list"),
@@ -18,6 +18,11 @@ const elements = {
   temperatureInput: document.getElementById("temperature-input"),
   modelSelect: document.getElementById("model-select"),
   voiceSelect: document.getElementById("voice-select"),
+  systemPromptToggle: document.getElementById("system-prompt-toggle"),
+  systemPromptPanel: document.getElementById("system-prompt-panel"),
+  systemPromptInput: document.getElementById("system-prompt-input"),
+  applySystemPromptBtn: document.getElementById("apply-system-prompt"),
+  closeSystemPromptBtn: document.getElementById("close-system-prompt"),
 };
 
 const state = {
@@ -42,6 +47,7 @@ document.addEventListener("DOMContentLoaded", init);
 async function init() {
   loadState();
   bindEvents();
+  bindSystemPromptEvents();
 
   if (!state.chats.length) {
     const chat = createChat();
@@ -144,6 +150,22 @@ function bindEvents() {
   });
 }
 
+function bindSystemPromptEvents() {
+  elements.systemPromptToggle.addEventListener("click", () => {
+    const isHidden = elements.systemPromptPanel.classList.toggle("hidden");
+    if (!isHidden) {
+      renderSystemPrompt();
+      elements.systemPromptInput.focus();
+    }
+  });
+
+  elements.applySystemPromptBtn.addEventListener("click", applySystemPrompt);
+
+  elements.closeSystemPromptBtn.addEventListener("click", () => {
+    elements.systemPromptPanel.classList.add("hidden");
+  });
+}
+
 function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
@@ -209,6 +231,7 @@ function render() {
   renderVoiceSelect();
   updateStatus();
   updateControls();
+  renderSystemPrompt();
 }
 
 function renderChatList() {
@@ -227,8 +250,77 @@ function renderChatList() {
       saveState();
       render();
     });
-    elements.chatList.appendChild(btn);
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "chat-list__delete-btn";
+    deleteBtn.innerHTML = "&times;";
+    deleteBtn.title = "Delete chat";
+    deleteBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteChat(chat.id);
+    });
+
+    const container = document.createElement("div");
+    container.className = "chat-list__item-container";
+    if (chat.id === state.activeChatId) {
+      container.classList.add("active");
+    }
+    container.append(btn, deleteBtn);
+    elements.chatList.appendChild(container);
   });
+}
+
+function deleteChat(chatId) {
+  const index = state.chats.findIndex((c) => c.id === chatId);
+  if (index === -1) return;
+
+  if (!confirm(`Are you sure you want to delete chat "${state.chats[index].title}"?`)) return;
+
+  state.chats.splice(index, 1);
+
+  if (state.activeChatId === chatId) {
+    state.activeChatId = state.chats[0]?.id || null;
+    if (!state.activeChatId) {
+      const newChat = createChat();
+      state.chats.push(newChat);
+      state.activeChatId = newChat.id;
+    }
+  }
+
+  saveState();
+  render();
+}
+
+function renderSystemPrompt() {
+  const chat = getActiveChat();
+  if (!chat) return;
+  const systemMessage = chat.messages.find((m) => m.role === "system");
+  elements.systemPromptInput.value = systemMessage ? systemMessage.content : "";
+}
+
+function applySystemPrompt() {
+  const chat = getActiveChat();
+  if (!chat) return;
+
+  const newPrompt = elements.systemPromptInput.value.trim();
+
+  let systemMessage = chat.messages.find((m) => m.role === "system");
+  if (systemMessage) {
+    systemMessage.content = newPrompt;
+    systemMessage.createdAt = new Date().toISOString();
+  } else {
+    chat.messages.unshift({
+      id: newId(),
+      role: "system",
+      content: newPrompt,
+      createdAt: new Date().toISOString(),
+    });
+  }
+
+  saveState();
+  render();
+  elements.systemPromptPanel.classList.add("hidden");
+  setStatus("System prompt applied.", false);
 }
 
 function renderMessages() {
