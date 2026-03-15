@@ -763,6 +763,7 @@ function branchChatFromMessage(messageId) {
   const newChat = {
     id: newId(),
     title: chat.title,
+    color: generateRandomSoftColor(),
     createdAt: new Date().toISOString(),
     messages: chat.messages.slice(0, index + 1).map((message) => ({ ...message })),
   };
