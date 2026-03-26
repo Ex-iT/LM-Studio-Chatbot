@@ -482,9 +482,9 @@ function renderMessages() {
         actions.append(cancelBtn, saveBtn);
         article.append(head, editor, actions);
       } else {
-        const content = document.createElement("pre");
-        content.className = "message__content";
-        content.textContent = message.content;
+        const content = document.createElement("div");
+        content.className = "message__content message__content--markdown";
+        content.innerHTML = parseMarkdown(message.content);
         article.append(head, content);
       }
 
@@ -925,4 +925,45 @@ function renderVoiceSelect() {
 
   select.disabled = false;
   select.value = state.voice || state.voices[0].name;
+}
+
+function parseMarkdown(text) {
+  if (!text) return "";
+
+  // 1. Escape HTML to prevent XSS
+  let html = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+
+  // 2. Code blocks (```code```)
+  html = html.replace(/```(?:[a-z]*\n)?([\s\S]*?)```/gm, '<pre class="code-block"><code>$1</code></pre>');
+
+  // 3. Inline code (`code`)
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // 4. Headings
+  html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
+  html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
+  html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
+
+  // 5. Bold
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+  // 6. Italic
+  html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+  // 7. Paragraphs and line breaks
+  const paragraphs = html.split(/\n\s*\n/);
+  return paragraphs
+    .map(p => {
+      p = p.trim();
+      if (!p) return "";
+      // If it starts with a block tag, return as is
+      if (/^<(h[1-3]|pre)/i.test(p)) return p;
+      return `<p>${p.replace(/\n/g, "<br>")}</p>`;
+    })
+    .join("");
 }

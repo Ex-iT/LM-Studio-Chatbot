@@ -444,6 +444,70 @@ body {
   font-family: inherit;
 }
 
+.message__content--markdown {
+  display: block;
+  white-space: normal;
+}
+
+.message__content--markdown p {
+  margin: 0.5rem 0;
+}
+
+.message__content--markdown p:first-child {
+  margin-top: 0;
+}
+
+.message__content--markdown p:last-child {
+  margin-bottom: 0;
+}
+
+.message__content--markdown h1,
+.message__content--markdown h2,
+.message__content--markdown h3 {
+  margin: 1rem 0 0.5rem;
+  color: #38bdf8;
+  line-height: 1.2;
+}
+
+.message__content--markdown h1 { font-size: 1.5rem; }
+.message__content--markdown h2 { font-size: 1.25rem; }
+.message__content--markdown h3 { font-size: 1.1rem; }
+
+.message__content--markdown strong {
+  color: #f8fafc;
+  font-weight: 700;
+}
+
+.message__content--markdown em {
+  font-style: italic;
+}
+
+.message__content--markdown code {
+  background: rgba(148, 163, 184, 0.2);
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.9em;
+  color: #facc15;
+}
+
+.message__content--markdown pre.code-block {
+  background: #0b1224;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.message__content--markdown pre.code-block code {
+  background: transparent;
+  padding: 0;
+  color: #f8fafc;
+  font-size: 0.85rem;
+  white-space: pre;
+}
+
 .message--user {
   background: rgba(56, 189, 248, 0.15);
   align-self: flex-end;
