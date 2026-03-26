@@ -918,7 +918,7 @@ function renderVoiceSelect() {
   sortedVoices.forEach((voice) => {
     const option = document.createElement("option");
     option.value = voice.name;
-    const label = voice.gender ? `${voice.gender === "male" ? "M" : voice.gender === "female" ? "F" : "?"} · ${voice.name}` : voice.name;
+    const label = voice.gender ? `${voice.gender === "male" ? "♂️" : voice.gender === "female" ? "♀️" : "?"} · ${voice.name}` : voice.name;
     option.textContent = `${label} (${voice.lang_code})`;
     select.appendChild(option);
   });
