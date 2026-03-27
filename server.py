@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from kokoro import KModel, KPipeline
@@ -274,12 +275,8 @@ def resolve_model_name(requested: Optional[str] = None) -> str:
 @app.route("/api/chat", methods=["POST"])
 def chat():
     payload = request.get_json(force=True) or {}
-    messages: List[dict] = payload.get("messages", [])
     temperature = float(payload.get("temperature", 0.7))
     requested_voice = payload.get("voice")
-
-    if not messages:
-        return jsonify({"error": "messages are required"}), 400
 
     try:
         resolved_voice, _ = get_voice_info(requested_voice)
@@ -288,12 +285,63 @@ def chat():
 
     try:
         model_name = resolve_model_name(payload.get("model"))
-        completion = client.chat.completions.create(
-            model=model_name,
-            messages=messages,
-            temperature=temperature,
-        )
-        content = completion.choices[0].message.content or ""
+        previous_response_id = payload.get("previous_response_id")
+        system_prompt = payload.get("system_prompt")
+        input_text = payload.get("input_text", "")
+
+        if not input_text and not previous_response_id:
+            return jsonify({"error": "input_text is required for new chats"}), 400
+
+        # Prepare payload for stateful API
+        responses_payload = {
+            "model": model_name,
+            "input": input_text,
+            "temperature": temperature,
+            "stream": False
+        }
+        if previous_response_id:
+            responses_payload["previous_response_id"] = previous_response_id
+        if system_prompt:
+            responses_payload["instructions"] = system_prompt
+
+        # Use LM Studio's /v1/responses endpoint
+        responses_url = f"{LMSTUDIO_BASE_URL}/responses"
+        resp = requests.post(responses_url, json=responses_payload, timeout=60)
+        resp.raise_for_status()
+
+        completion_data = resp.json()
+
+        # Extract content from LM Studio /v1/responses format
+        # Based on observed schema: output[0] -> content[0] -> text
+        content = ""
+        output_list = completion_data.get("output", [])
+        if output_list and isinstance(output_list, list) and len(output_list) > 0:
+            first_output = output_list[0]
+
+            # Case 1: content[0]['text'] (Message role schema)
+            content_list = first_output.get("content", [])
+            if content_list and isinstance(content_list, list) and len(content_list) > 0:
+                first_content = content_list[0]
+                content = first_content.get("text", "")
+
+            # Case 2: text['content'] (Alternative schema)
+            if not content:
+                text_obj = first_output.get("text", {})
+                if isinstance(text_obj, dict):
+                    content = text_obj.get("content", "")
+                elif isinstance(text_obj, str):
+                    content = text_obj
+
+            # Case 3: output_text field (Legacy/experimental)
+            if not content:
+                content = first_output.get("output_text", "")
+
+        # Final fallback - check top-level if nothing found in output list
+        if not content:
+            content = completion_data.get("output_text", "")
+
+        response_id = completion_data.get("id", "")
+
     except RuntimeError as exc:
         return jsonify({"error": str(exc)}), 503
     except Exception as exc:
@@ -308,7 +356,13 @@ def chat():
         return jsonify({"error": str(exc)}), 500
 
     return jsonify(
-        {"content": content, "audio": audio_b64, "model": model_name, "voice": resolved_voice}
+        {
+            "content": content,
+            "audio": audio_b64,
+            "model": model_name,
+            "voice": resolved_voice,
+            "response_id": response_id
+        }
     )
 
 

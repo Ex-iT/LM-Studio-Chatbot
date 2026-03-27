@@ -536,12 +536,32 @@ async function requestAssistantResponse(chat) {
   setStatus("");
 
   try {
+    // Find the last assistant response ID in the current thread to use as previous_response_id
+    let previousResponseId = null;
+    for (let i = chat.messages.length - 1; i >= 0; i--) {
+      const msg = chat.messages[i];
+      if (msg.role === "assistant" && msg.responseId) {
+        previousResponseId = msg.responseId;
+        break;
+      }
+    }
+
+    // Directly extract the latest user message.
+    const lastUserMessage = chat.messages.filter(m => m.role === "user").pop();
+
     const payload = {
-      messages: chat.messages.map(({ role, content }) => ({ role, content })),
+      input_text: lastUserMessage ? lastUserMessage.content : "",
       temperature: state.temperature,
       model: state.model,
       voice: state.voice,
+      previous_response_id: previousResponseId
     };
+
+    // Always send the system prompt so mid-conversation updates are applied immediately.
+    const systemPromptMessage = chat.messages.find(m => m.role === "system");
+    if (systemPromptMessage) {
+      payload.system_prompt = systemPromptMessage.content;
+    }
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -558,6 +578,7 @@ async function requestAssistantResponse(chat) {
       content: (data.content || "").trim(),
       createdAt: new Date().toISOString(),
       voice: data.voice || state.voice,
+      responseId: data.response_id
     };
     if (data.audio) {
       assistantMessage.audioUrl = `data:audio/wav;base64,${data.audio}`;
