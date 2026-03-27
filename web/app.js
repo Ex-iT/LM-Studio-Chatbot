@@ -273,10 +273,7 @@ function getActiveChat() {
 function updateChatTitle(chat) {
   const firstUser = chat.messages.find((m) => m.role === "user");
   if (firstUser) {
-    chat.title =
-      firstUser.content.length > 30
-        ? `${firstUser.content.slice(0, 30)}…`
-        : firstUser.content || "Untitled chat";
+    chat.title = firstUser.content.trim() || "Untitled chat";
   }
 }
 
@@ -585,8 +582,10 @@ async function requestAssistantResponse(chat) {
     }
 
     chat.messages.push(assistantMessage);
+    updateChatTitle(chat);
     saveState();
     renderMessages();
+    renderChatList();
     updateControls();
 
     if (assistantMessage.audioUrl) {
