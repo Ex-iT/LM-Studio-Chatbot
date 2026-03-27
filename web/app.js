@@ -43,6 +43,8 @@ const state = {
   audioPlaying: false,
   editingMessageId: null,
   editingValue: "",
+  editingChatId: null,
+  editingChatValue: "",
 };
 
 let audioPlayer = null;
@@ -320,9 +322,71 @@ function renderChatList() {
     if (chat.id === state.activeChatId) {
       container.classList.add("active");
     }
-    container.append(btn, deleteBtn);
+    const isEditing = state.editingChatId === chat.id;
+
+    if (isEditing) {
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "chat-list__item-input";
+      input.value = state.editingChatValue;
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          saveChatTitle(chat.id, input.value.trim());
+        } else if (event.key === "Escape") {
+          cancelEditingChat();
+        }
+      });
+      input.addEventListener("blur", () => {
+        saveChatTitle(chat.id, input.value.trim());
+      });
+      
+      const focusInput = () => {
+        input.focus();
+        input.select();
+      };
+      if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(focusInput);
+      } else {
+        setTimeout(focusInput, 0);
+      }
+      container.appendChild(input);
+    } else {
+      btn.addEventListener("dblclick", () => {
+        startEditingChat(chat.id);
+      });
+      container.append(btn, deleteBtn);
+    }
     elements.chatList.appendChild(container);
   });
+}
+
+function startEditingChat(chatId) {
+  const chat = state.chats.find((c) => c.id === chatId);
+  if (!chat) return;
+
+  state.editingChatId = chatId;
+  state.editingChatValue = chat.title || "Untitled chat";
+  renderChatList();
+}
+
+function cancelEditingChat() {
+  state.editingChatId = null;
+  state.editingChatValue = "";
+  renderChatList();
+}
+
+function saveChatTitle(chatId, newTitle) {
+  if (state.editingChatId !== chatId) return;
+
+  const chat = state.chats.find((c) => c.id === chatId);
+  if (chat && newTitle && newTitle !== chat.title) {
+    chat.title = newTitle;
+    saveState();
+  }
+
+  state.editingChatId = null;
+  state.editingChatValue = "";
+  renderChatList();
 }
 
 function deleteChat(chatId) {
