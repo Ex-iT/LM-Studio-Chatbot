@@ -81,6 +81,38 @@
               <input type="number" id="reminder-threshold-input" min="0" step="100" value="2000" />
             </div>
           </div>
+
+          <hr class="settings-separator" />
+
+          <!-- Appearance / Avatars -->
+          <div class="settings-group">
+            <span class="settings-group__label">Appearance (Avatars)</span>
+            <div class="avatar-upload-row">
+              <div class="avatar-upload">
+                <span class="avatar-upload__label">Assistant</span>
+                <button type="button" class="avatar-upload__preview" id="bot-avatar-preview">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:55%;height:55%"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+                </button>
+                <div class="avatar-upload__actions">
+                  <label class="btn ghost small" for="bot-avatar-input">Upload</label>
+                  <input type="file" id="bot-avatar-input" accept="image/*" class="hidden" />
+                  <button id="bot-avatar-remove" class="btn ghost small" style="color: #ea4335;">Clear</button>
+                </div>
+              </div>
+
+              <div class="avatar-upload">
+                <span class="avatar-upload__label">User</span>
+                <button type="button" class="avatar-upload__preview" id="user-avatar-preview">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:65%;height:65%"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+                <div class="avatar-upload__actions">
+                  <label class="btn ghost small" for="user-avatar-input">Upload</label>
+                  <input type="file" id="user-avatar-input" accept="image/*" class="hidden" />
+                  <button id="user-avatar-remove" class="btn ghost small" style="color: #ea4335;">Clear</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="settings-dialog__footer">

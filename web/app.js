@@ -2,12 +2,17 @@ const STORAGE_KEY = "lm_tts_chats_v1";
 const TEMP_KEY = "kokoro_temperature";
 const VOICE_KEY = "kokoro_voice";
 const MODEL_KEY = "kokoro_model";
+const BOT_AVATAR_KEY = "kokoro_bot_avatar";
+const USER_AVATAR_KEY = "kokoro_user_avatar";
 
 const DEFAULT_SYSTEM_PROMPT =
   "You are a helpful AI assistant who responds concisely and clearly. Keep answers friendly and readable. Make sure your answers are suitable to be read aloud by a text-to-speech engine.";
 
 const DEFAULT_REMINDER_PROMPT = "";
 const DEFAULT_REMINDER_THRESHOLD = 2000;
+
+const DEFAULT_BOT_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:65%;height:65%"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>`;
+const DEFAULT_USER_SVG = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:65%;height:65%"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
 
 const elements = {
   chatList: document.getElementById("chat-list"),
@@ -37,6 +42,13 @@ const elements = {
   chatHeaderName: document.getElementById("chat-header-name"),
   chatHeaderStatus: document.getElementById("chat-header-status"),
   chatHeaderAvatar: document.getElementById("chat-header-avatar"),
+  // Avatar uploading
+  botAvatarPreview: document.getElementById("bot-avatar-preview"),
+  botAvatarInput: document.getElementById("bot-avatar-input"),
+  botAvatarRemove: document.getElementById("bot-avatar-remove"),
+  userAvatarPreview: document.getElementById("user-avatar-preview"),
+  userAvatarInput: document.getElementById("user-avatar-input"),
+  userAvatarRemove: document.getElementById("user-avatar-remove"),
   // Sidebar
   sidebar: document.querySelector(".sidebar"),
   appShell: document.querySelector(".app-shell"),
@@ -226,6 +238,102 @@ function bindSettingsEvents() {
     saveState();
     updateControls();
   });
+
+  // Avatar Upload Logic
+  elements.botAvatarPreview.addEventListener("click", () => {
+    elements.botAvatarInput.click();
+  });
+
+  elements.botAvatarInput.addEventListener("change", async (e) => {
+    if (!e.target.files?.length) return;
+    try {
+      const b64 = await resizeImage(e.target.files[0], 45);
+      const chat = getActiveChat();
+      if (!chat) return;
+      chat.botAvatar = b64;
+      saveState();
+      elements.botAvatarPreview.innerHTML = `<img src="${b64}" />`;
+      updateChatHeader();
+      renderMessages();
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to load assistant avatar.");
+    }
+    e.target.value = "";
+  });
+
+  elements.botAvatarRemove.addEventListener("click", () => {
+    const chat = getActiveChat();
+    if (!chat) return;
+    delete chat.botAvatar;
+    saveState();
+    elements.botAvatarPreview.innerHTML = DEFAULT_BOT_SVG;
+    updateChatHeader();
+    renderMessages();
+  });
+
+  elements.userAvatarPreview.addEventListener("click", () => {
+    elements.userAvatarInput.click();
+  });
+
+  elements.userAvatarInput.addEventListener("change", async (e) => {
+    if (!e.target.files?.length) return;
+    try {
+      const b64 = await resizeImage(e.target.files[0], 45);
+      const chat = getActiveChat();
+      if (!chat) return;
+      chat.userAvatar = b64;
+      saveState();
+      elements.userAvatarPreview.innerHTML = `<img src="${b64}" />`;
+      renderMessages();
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to load user avatar.");
+    }
+    e.target.value = "";
+  });
+
+  elements.userAvatarRemove.addEventListener("click", () => {
+    const chat = getActiveChat();
+    if (!chat) return;
+    delete chat.userAvatar;
+    saveState();
+    elements.userAvatarPreview.innerHTML = DEFAULT_USER_SVG;
+    renderMessages();
+  });
+}
+
+function resizeImage(file, maxSize = 128) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = Math.round((width * maxSize) / height);
+            height = maxSize;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/webp", 0.8));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
 
 function renderSettingsForm() {
@@ -236,6 +344,12 @@ function renderSettingsForm() {
   elements.reminderPromptInput.value = chat.reminderPrompt || "";
   elements.reminderThresholdInput.value = chat.reminderThreshold ?? DEFAULT_REMINDER_THRESHOLD;
   elements.ttsToggle.checked = chat.ttsEnabled !== false;
+
+  const botAvatar = chat.botAvatar;
+  elements.botAvatarPreview.innerHTML = botAvatar ? `<img src="${botAvatar}" />` : DEFAULT_BOT_SVG;
+
+  const userAvatar = chat.userAvatar;
+  elements.userAvatarPreview.innerHTML = userAvatar ? `<img src="${userAvatar}" />` : DEFAULT_USER_SVG;
 }
 
 function loadState() {
@@ -487,6 +601,9 @@ function updateChatHeader() {
   const truncated = model.length > 50 ? model.slice(0, 47) + "…" : model;
   elements.chatHeaderName.textContent = title;
   elements.chatHeaderStatus.textContent = truncated;
+  
+  const botAvatar = chat ? chat.botAvatar : null;
+  elements.chatHeaderAvatar.innerHTML = botAvatar ? `<img src="${botAvatar}" />` : DEFAULT_BOT_SVG;
 }
 
 // ---------- Messages ----------
@@ -508,12 +625,18 @@ function renderMessages() {
         article.classList.add("message--editing");
       }
 
-      // Avatar
+      // Avatars
+      const botAvatarData = chat.botAvatar;
+      const userAvatarData = chat.userAvatar;
+
       const avatar = document.createElement("div");
       avatar.className = "message__avatar";
-      avatar.innerHTML = isUser
-        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:65%;height:65%"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
-        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:65%;height:65%"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>`;
+      
+      if (isUser) {
+        avatar.innerHTML = userAvatarData ? `<img src="${userAvatarData}" />` : DEFAULT_USER_SVG;
+      } else {
+        avatar.innerHTML = botAvatarData ? `<img src="${botAvatarData}" />` : DEFAULT_BOT_SVG;
+      }
 
       // Bubble
       const bubble = document.createElement("div");
