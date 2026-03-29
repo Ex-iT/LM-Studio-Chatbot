@@ -5,3 +5,4 @@ numpy
 openai
 sounddevice
 torch
+requests
