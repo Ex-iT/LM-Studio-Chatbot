@@ -6,6 +6,9 @@ const MODEL_KEY = "kokoro_model";
 const DEFAULT_SYSTEM_PROMPT =
   "You are a helpful AI assistant who responds concisely and clearly. Keep answers friendly and readable. Make sure your answers are suitable to be read aloud by a text-to-speech engine.";
 
+const DEFAULT_REMINDER_PROMPT = "";
+const DEFAULT_REMINDER_THRESHOLD = 2000;
+
 const elements = {
   chatList: document.getElementById("chat-list"),
   newChatBtn: document.getElementById("new-chat-btn"),
@@ -24,6 +27,9 @@ const elements = {
   systemPromptInput: document.getElementById("system-prompt-input"),
   applySystemPromptBtn: document.getElementById("apply-system-prompt"),
   closeSystemPromptBtn: document.getElementById("close-system-prompt"),
+  reminderPromptInput: document.getElementById("reminder-prompt-input"),
+  reminderThresholdInput: document.getElementById("reminder-threshold-input"),
+  ttsToggle: document.getElementById("tts-toggle"),
   sidebar: document.querySelector(".sidebar"),
   sidebarToggle: document.getElementById("sidebar-toggle"),
   appShell: document.querySelector(".app-shell"),
@@ -34,7 +40,7 @@ const state = {
   activeChatId: null,
   sidebarCollapsed: false,
   pending: false,
-  temperature: 0.7,
+  temperature: 0.8,
   status: "",
   models: [],
   model: null,
@@ -212,6 +218,14 @@ function bindSystemPromptEvents() {
   elements.closeSystemPromptBtn.addEventListener("click", () => {
     elements.systemPromptPanel.classList.add("hidden");
   });
+
+  elements.ttsToggle.addEventListener("change", () => {
+    const chat = getActiveChat();
+    if (!chat) return;
+    chat.ttsEnabled = elements.ttsToggle.checked;
+    saveState();
+    updateControls();
+  });
 }
 
 function loadState() {
@@ -221,11 +235,14 @@ function loadState() {
     state.activeChatId = stored.activeChatId ?? null;
     state.sidebarCollapsed = stored.sidebarCollapsed ?? false;
 
-    // Ensure all chats have a color
+    // Ensure all chats have required properties (backward compat)
     state.chats.forEach(chat => {
       if (!chat.color) {
         chat.color = generateRandomSoftColor();
       }
+      if (chat.ttsEnabled === undefined) chat.ttsEnabled = true;
+      if (chat.reminderPrompt === undefined) chat.reminderPrompt = DEFAULT_REMINDER_PROMPT;
+      if (chat.reminderThreshold === undefined) chat.reminderThreshold = DEFAULT_REMINDER_THRESHOLD;
     });
   } catch (error) {
     console.warn("Failed to load chats", error);
@@ -257,6 +274,9 @@ function createChat() {
     title: "New chat",
     color: generateRandomSoftColor(),
     createdAt: now,
+    ttsEnabled: true,
+    reminderPrompt: DEFAULT_REMINDER_PROMPT,
+    reminderThreshold: DEFAULT_REMINDER_THRESHOLD,
     messages: [
       {
         id: newId(),
@@ -287,6 +307,7 @@ function render() {
   updateStatus();
   updateControls();
   renderSystemPrompt();
+  renderChatSettings();
 }
 
 function renderChatList() {
@@ -339,7 +360,7 @@ function renderChatList() {
       input.addEventListener("blur", () => {
         saveChatTitle(chat.id, input.value.trim());
       });
-      
+
       const focusInput = () => {
         input.focus();
         input.select();
@@ -415,6 +436,14 @@ function renderSystemPrompt() {
   if (!chat) return;
   const systemMessage = chat.messages.find((m) => m.role === "system");
   elements.systemPromptInput.value = systemMessage ? systemMessage.content : "";
+  elements.reminderPromptInput.value = chat.reminderPrompt || "";
+  elements.reminderThresholdInput.value = chat.reminderThreshold ?? DEFAULT_REMINDER_THRESHOLD;
+}
+
+function renderChatSettings() {
+  const chat = getActiveChat();
+  if (!chat) return;
+  elements.ttsToggle.checked = chat.ttsEnabled !== false;
 }
 
 function applySystemPrompt() {
@@ -436,10 +465,28 @@ function applySystemPrompt() {
     });
   }
 
+  // Save reminder settings
+  chat.reminderPrompt = elements.reminderPromptInput.value.trim();
+  chat.reminderThreshold = Math.max(0, parseInt(elements.reminderThresholdInput.value, 10) || DEFAULT_REMINDER_THRESHOLD);
+
   saveState();
   render();
   elements.systemPromptPanel.classList.add("hidden");
   setStatus("System prompt applied.", false);
+}
+
+/**
+ * Estimate token count for the conversation using a simple chars/4 heuristic.
+ * Counts only user and assistant messages (not the system prompt).
+ */
+function estimateTokenCount(chat) {
+  let totalChars = 0;
+  for (const msg of chat.messages) {
+    if (msg.role === "user" || msg.role === "assistant") {
+      totalChars += (msg.content || "").length;
+    }
+  }
+  return Math.round(totalChars / 4);
 }
 
 function renderMessages() {
@@ -562,9 +609,11 @@ function updateStatus() {
 function updateControls() {
   elements.pendingIndicator.classList.toggle("hidden", !state.pending);
   const noModel = !state.model;
-  const noVoice = !state.voice;
-  elements.redoBtn.disabled = state.pending || noModel || noVoice || !canRedo();
-  const disabled = state.pending || noModel || noVoice;
+  const chat = getActiveChat();
+  const ttsEnabled = chat ? chat.ttsEnabled !== false : true;
+  const noVoice = !state.voice && ttsEnabled;
+  elements.redoBtn.disabled = state.pending || noModel || (ttsEnabled && !state.voice) || !canRedo();
+  const disabled = state.pending || noModel || (ttsEnabled && !state.voice);
   elements.promptInput.disabled = disabled;
   elements.composer.querySelector("button[type=submit]").disabled = disabled;
   elements.modelSelect.disabled = !state.models.length;
@@ -572,6 +621,8 @@ function updateControls() {
   if (elements.stopAudioBtn) {
     elements.stopAudioBtn.disabled = !state.audioPlaying;
   }
+  // Dim the voice select when TTS is disabled
+  elements.voiceSelect.closest('.voice-control').style.opacity = ttsEnabled ? '' : '0.4';
 }
 
 function canRedo() {
@@ -586,7 +637,8 @@ async function requestAssistantResponse(chat) {
     setStatus("No LM Studio model available.");
     return;
   }
-  if (!state.voice) {
+  const ttsEnabled = chat.ttsEnabled !== false;
+  if (ttsEnabled && !state.voice) {
     setStatus("No Kokoro voice selected.");
     return;
   }
@@ -614,8 +666,9 @@ async function requestAssistantResponse(chat) {
       input_text: lastUserMessage ? lastUserMessage.content : "",
       temperature: state.temperature,
       model: state.model,
-      voice: state.voice,
-      previous_response_id: previousResponseId
+      voice: ttsEnabled ? state.voice : null,
+      previous_response_id: previousResponseId,
+      tts_enabled: ttsEnabled
     };
 
     // Always send the system prompt so mid-conversation updates are applied immediately.
@@ -623,6 +676,13 @@ async function requestAssistantResponse(chat) {
     if (systemPromptMessage) {
       payload.system_prompt = systemPromptMessage.content;
     }
+
+    // Inject reminder prompt if token threshold is exceeded
+    const estimatedTokens = estimateTokenCount(chat);
+    if (chat.reminderPrompt && chat.reminderThreshold > 0 && estimatedTokens >= chat.reminderThreshold) {
+      payload.reminder_prompt = chat.reminderPrompt;
+    }
+
     const response = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -641,7 +701,7 @@ async function requestAssistantResponse(chat) {
       voice: data.voice || state.voice,
       responseId: data.response_id
     };
-    if (data.audio) {
+    if (ttsEnabled && data.audio) {
       assistantMessage.audioUrl = `data:audio/wav;base64,${data.audio}`;
     }
 
@@ -652,7 +712,7 @@ async function requestAssistantResponse(chat) {
     renderChatList();
     updateControls();
 
-    if (assistantMessage.audioUrl) {
+    if (ttsEnabled && assistantMessage.audioUrl) {
       playAudio(assistantMessage.audioUrl);
     }
   } catch (error) {

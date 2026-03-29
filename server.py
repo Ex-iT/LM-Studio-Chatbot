@@ -276,21 +276,31 @@ def resolve_model_name(requested: Optional[str] = None) -> str:
 def chat():
     payload = request.get_json(force=True) or {}
     temperature = float(payload.get("temperature", 0.7))
+    tts_enabled = payload.get("tts_enabled", True)
     requested_voice = payload.get("voice")
 
-    try:
-        resolved_voice, _ = get_voice_info(requested_voice)
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
+    if tts_enabled:
+        try:
+            resolved_voice, _ = get_voice_info(requested_voice)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+    else:
+        resolved_voice = requested_voice or DEFAULT_VOICE
 
     try:
         model_name = resolve_model_name(payload.get("model"))
         previous_response_id = payload.get("previous_response_id")
         system_prompt = payload.get("system_prompt")
+        reminder_prompt = payload.get("reminder_prompt")
         input_text = payload.get("input_text", "")
 
         if not input_text and not previous_response_id:
             return jsonify({"error": "input_text is required for new chats"}), 400
+
+        # Build the combined instructions (system prompt + optional reminder)
+        instructions = system_prompt or ""
+        if reminder_prompt:
+            instructions = f"{instructions}\n\n[REMINDER]: {reminder_prompt}".strip()
 
         # Prepare payload for stateful API
         responses_payload = {
@@ -301,8 +311,8 @@ def chat():
         }
         if previous_response_id:
             responses_payload["previous_response_id"] = previous_response_id
-        if system_prompt:
-            responses_payload["instructions"] = system_prompt
+        if instructions:
+            responses_payload["instructions"] = instructions
 
         # Use LM Studio's /v1/responses endpoint
         responses_url = f"{LMSTUDIO_BASE_URL}/responses"
@@ -348,22 +358,26 @@ def chat():
         app.logger.error("LLM failure: %s", exc)
         return jsonify({"error": str(exc)}), 500
 
-    try:
-        audio_b64, resolved_voice = synthesize_audio(content, resolved_voice)
-    except ValueError as exc:
-        return jsonify({"error": str(exc)}), 400
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    # Only synthesize audio if TTS is enabled
+    audio_b64 = None
+    if tts_enabled:
+        try:
+            audio_b64, resolved_voice = synthesize_audio(content, resolved_voice)
+        except ValueError as exc:
+            return jsonify({"error": str(exc)}), 400
+        except Exception as exc:
+            return jsonify({"error": str(exc)}), 500
 
-    return jsonify(
-        {
-            "content": content,
-            "audio": audio_b64,
-            "model": model_name,
-            "voice": resolved_voice,
-            "response_id": response_id
-        }
-    )
+    result = {
+        "content": content,
+        "model": model_name,
+        "voice": resolved_voice,
+        "response_id": response_id
+    }
+    if audio_b64:
+        result["audio"] = audio_b64
+
+    return jsonify(result)
 
 
 @app.route("/api/tts", methods=["POST"])

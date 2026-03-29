@@ -53,6 +53,10 @@
             <button id="system-prompt-toggle" class="btn ghost" title="Edit system prompt">
               System prompt
             </button>
+            <label class="tts-toggle-control" title="Enable or disable text-to-speech for this chat">
+              <input type="checkbox" id="tts-toggle" checked />
+              <span class="tts-toggle-label">TTS</span>
+            </label>
             <button id="redo-btn" class="btn ghost" title="Redo last response">
               Redo
             </button>
@@ -68,6 +72,16 @@
           <section id="system-prompt-panel" class="system-prompt-panel hidden">
             <label for="system-prompt-input">System Prompt</label>
             <textarea id="system-prompt-input" rows="3"></textarea>
+
+            <hr class="panel-divider" />
+
+            <label for="reminder-prompt-input">Reminder Prompt <span class="label-hint">(injected after token threshold)</span></label>
+            <textarea id="reminder-prompt-input" rows="2" placeholder="e.g. Remember: keep responses concise and TTS-friendly."></textarea>
+            <label class="reminder-threshold-control">
+              <span>Token threshold</span>
+              <input type="number" id="reminder-threshold-input" min="0" step="100" value="2000" />
+            </label>
+
             <div class="panel-actions">
               <button id="apply-system-prompt" class="btn primary small">Apply</button>
               <button id="close-system-prompt" class="btn ghost small">Close</button>
