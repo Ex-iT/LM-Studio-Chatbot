@@ -40,6 +40,7 @@ const elements = {
   typingIndicator: document.getElementById("typing-indicator"),
   // Chat header
   chatHeaderName: document.getElementById("chat-header-name"),
+  chatHeaderTtsStatus: document.getElementById("chat-header-tts-status"),
   chatHeaderStatus: document.getElementById("chat-header-status"),
   chatHeaderAvatar: document.getElementById("chat-header-avatar"),
   // Avatar uploading
@@ -213,13 +214,6 @@ function bindSettingsEvents() {
 
   elements.settingsClose.addEventListener("click", () => {
     elements.settingsDialog.close();
-  });
-
-  elements.settingsDialog.addEventListener("click", (event) => {
-    // Close on backdrop click
-    if (event.target === elements.settingsDialog) {
-      elements.settingsDialog.close();
-    }
   });
 
   elements.applySystemPromptBtn.addEventListener("click", () => {
@@ -597,11 +591,20 @@ function estimateTokenCount(chat) {
 function updateChatHeader() {
   const chat = getActiveChat();
   const title = chat ? (chat.title || "New chat") : "Assistant";
-  const model = state.model || "No model";
-  const truncated = model.length > 50 ? model.slice(0, 47) + "…" : model;
+  const modelPart = state.model || "No model";
+  const voicePart = state.voice ? ` • ${state.voice}` : "";
+  const fullStatus = modelPart + voicePart;
+  const truncated = fullStatus.length > 60 ? fullStatus.slice(0, 57) + "…" : fullStatus;
   elements.chatHeaderName.textContent = title;
-  elements.chatHeaderStatus.textContent = truncated;
   
+  if (chat && !chat.ttsEnabled) {
+    elements.chatHeaderTtsStatus.classList.remove("hidden");
+  } else {
+    elements.chatHeaderTtsStatus.classList.add("hidden");
+  }
+
+  elements.chatHeaderStatus.textContent = truncated;
+
   const botAvatar = chat ? chat.botAvatar : null;
   elements.chatHeaderAvatar.innerHTML = botAvatar ? `<img src="${botAvatar}" />` : DEFAULT_BOT_SVG;
 }
@@ -631,7 +634,7 @@ function renderMessages() {
 
       const avatar = document.createElement("div");
       avatar.className = "message__avatar";
-      
+
       if (isUser) {
         avatar.innerHTML = userAvatarData ? `<img src="${userAvatarData}" />` : DEFAULT_USER_SVG;
       } else {

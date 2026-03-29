@@ -619,6 +619,12 @@ body {
   min-width: 0;
 }
 
+.chat-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .chat-header__name {
   font-size: 1.15rem;
   font-weight: 600;
