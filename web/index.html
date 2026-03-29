@@ -4,120 +4,142 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TTS Chat Assistant</title>
+    <meta name="description" content="AI chat assistant powered by LM Studio and Kokoro TTS" />
     <link rel="stylesheet" href="styles.css" />
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   </head>
   <body>
     <div class="app-shell">
+      <!-- ===== SIDEBAR ===== -->
       <aside class="sidebar">
         <div class="sidebar__header">
           <div class="sidebar__title">
             <div class="main-title">
               <span class="main-icon"><svg focusable="false" stroke="currentColor" fill="currentColor" stroke-width="0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="none" d="M0 0h24v24H0z"></path><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"></path><path d="M11.25 5h1.5v10h-1.5zM8.5 7H10v6H8.5zM6 9h1.5v2H6zM14 7h1.5v6H14zM16.5 9H18v2h-1.5z"></path></svg></span>
-              <strong>TTS Chat Assistant</strong>
+              <strong>TTS Chat</strong>
             </div>
-            <p class="subtitle">Powered by LM Studio + Kokoro</p>
+            <p class="subtitle">LM Studio + Kokoro</p>
           </div>
           <button id="new-chat-btn" class="btn primary">New Chat</button>
         </div>
+
         <div id="chat-list" class="chat-list"></div>
+
         <div class="sidebar__footer">
-          <a class="sidebar__github" href="https://github.com/ex-it/LM-Studio-Chatbot" title="TTS Chat Assistant on GitHub" target="_blank" rel="noopener noreferrer">
+          <a class="sidebar__github" href="https://github.com/ex-it/LM-Studio-Chatbot" title="GitHub" target="_blank" rel="noopener noreferrer">
             <svg focusable="false" stroke="currentColor" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.27a11 11 0 00-3.48 21.46c.55.09.73-.28.73-.55v-1.84c-3.03.64-3.67-1.46-3.67-1.46-.55-1.29-1.28-1.65-1.28-1.65-.92-.65.1-.65.1-.65 1.1 0 1.73 1.1 1.73 1.1.92 1.65 2.57 1.2 3.21.92a2 2 0 01.64-1.47c-2.47-.27-5.04-1.19-5.04-5.5 0-1.1.46-2.1 1.2-2.84a3.76 3.76 0 010-2.93s.91-.28 3.11 1.1c1.8-.49 3.7-.49 5.5 0 2.1-1.38 3.02-1.1 3.02-1.1a3.76 3.76 0 010 2.93c.83.74 1.2 1.74 1.2 2.94 0 4.21-2.57 5.13-5.04 5.4.45.37.82.92.82 2.02v3.03c0 .27.1.64.73.55A11 11 0 0012 1.27"></path></svg>
           </a>
-          <button id="sidebar-toggle" class="sidebar__toggle" title="Toggle Sidebar">«</button>
         </div>
       </aside>
 
-      <main class="chat-panel">
-        <header class="chat-toolbar">
-          <div class="toolbar-actions">
-            <label class="model-control">
-              <span>Model</span>
+      <!-- ===== SETTINGS DIALOG ===== -->
+      <dialog id="settings-dialog" class="settings-dialog">
+        <div class="settings-dialog__header">
+          <h2>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1rem;height:1.1rem"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Settings
+          </h2>
+          <button id="settings-close" class="settings-dialog__close" title="Close">&times;</button>
+        </div>
+
+        <div class="settings-dialog__body">
+          <!-- Model & Voice -->
+          <div class="settings-group">
+            <span class="settings-group__label">Model &amp; Voice</span>
+            <div class="settings-row">
+              <label for="model-select">Model</label>
               <select id="model-select"></select>
-            </label>
-            <label class="voice-control">
-              <span>Voice</span>
+            </div>
+            <div class="settings-row">
+              <label for="voice-select">Voice</label>
               <select id="voice-select"></select>
-            </label>
-            <label class="temperature-control">
-              <span>Temp</span>
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                max="1"
-                id="temperature-input"
-              />
-            </label>
-            <button id="system-prompt-toggle" class="btn ghost" title="Edit system prompt">
-              System prompt
-            </button>
-            <label class="tts-toggle-control" title="Enable or disable text-to-speech for this chat">
-              <input type="checkbox" id="tts-toggle" checked />
-              <span class="tts-toggle-label">TTS</span>
-            </label>
-            <button id="redo-btn" class="btn ghost" title="Redo last response">
-              Redo
-            </button>
-            <button
-              id="stop-audio-btn"
-              class="btn ghost"
-              title="Stop current audio playback"
-            >
-              Stop Audio
-            </button>
+            </div>
+            <div class="settings-row">
+              <label for="temperature-input">Temp</label>
+              <input type="number" step="0.1" min="0" max="1" id="temperature-input" />
+            </div>
+            <div class="settings-toggle">
+              <span class="settings-toggle__label">Text-to-Speech</span>
+              <input type="checkbox" id="tts-toggle" class="toggle-switch" checked />
+            </div>
           </div>
 
-          <section id="system-prompt-panel" class="system-prompt-panel hidden">
-            <label for="system-prompt-input">System Prompt</label>
-            <textarea id="system-prompt-input" rows="3"></textarea>
+          <hr class="settings-separator" />
 
-            <hr class="panel-divider" />
+          <!-- System Prompt -->
+          <div class="settings-group">
+            <span class="settings-group__label">System Prompt</span>
+            <textarea id="system-prompt-input" class="settings-textarea" rows="3"></textarea>
+          </div>
 
-            <label for="reminder-prompt-input">Reminder Prompt <span class="label-hint">(injected after token threshold)</span></label>
-            <textarea id="reminder-prompt-input" rows="2" placeholder="e.g. Remember: keep responses concise and TTS-friendly."></textarea>
-            <label class="reminder-threshold-control">
-              <span>Token threshold</span>
+          <!-- Reminder -->
+          <div class="settings-group">
+            <span class="settings-group__label">Reminder Prompt <span class="settings-hint">(injected after token threshold)</span></span>
+            <textarea id="reminder-prompt-input" class="settings-textarea" rows="2" placeholder="e.g. Remember: keep responses concise and TTS-friendly."></textarea>
+            <div class="settings-inline">
+              <label for="reminder-threshold-input">Token threshold</label>
               <input type="number" id="reminder-threshold-input" min="0" step="100" value="2000" />
-            </label>
-
-            <div class="panel-actions">
-              <button id="apply-system-prompt" class="btn primary small">Apply</button>
-              <button id="close-system-prompt" class="btn ghost small">Close</button>
             </div>
-          </section>
+          </div>
+        </div>
+
+        <div class="settings-dialog__footer">
+          <button id="apply-system-prompt" class="btn primary small">Apply</button>
+          <button id="close-system-prompt" class="btn ghost small">Close</button>
+        </div>
+      </dialog>
+
+      <!-- ===== MAIN CHAT ===== -->
+      <main class="chat-panel">
+        <!-- Chat header -->
+        <header class="chat-header">
+          <div class="chat-header__avatar" id="chat-header-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:55%;height:55%"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+          </div>
+          <div class="chat-header__info">
+            <span class="chat-header__name" id="chat-header-name">Assistant</span>
+            <span class="chat-header__status" id="chat-header-status"></span>
+          </div>
+          <div class="chat-header__actions">
+            <button id="redo-btn" class="chat-header__action-btn" title="Redo last response">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+            <button id="stop-audio-btn" class="chat-header__action-btn" title="Stop audio">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <button id="settings-btn" class="chat-header__action-btn" title="Chat Settings">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+          </div>
         </header>
 
         <section id="status" class="status" role="status"></section>
 
         <section id="messages" class="messages"></section>
 
+        <!-- Typing indicator -->
+        <div id="typing-indicator" class="typing-indicator hidden">
+          <span class="typing-indicator__text">Assistant is typing</span>
+          <span class="typing-dots"><span></span><span></span><span></span></span>
+        </div>
+
+        <!-- Composer -->
         <form id="composer" class="composer">
-          <textarea
-            id="prompt-input"
-            placeholder="Type a message..."
-            title=""
-            rows="3"
-            required
-          ></textarea>
-          <div class="composer__actions">
-            <span id="pending-indicator" class="pending hidden">Thinking<span class="loader yellow"></span></span>
-            <button type="submit" class="btn primary">Send</button>
+          <div class="composer__input-wrap">
+            <textarea
+              id="prompt-input"
+              placeholder="Type a message..."
+              title=""
+              rows="1"
+              required
+            ></textarea>
           </div>
+          <button type="submit" class="composer__send-btn" title="Send message">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+          </button>
         </form>
       </main>
     </div>
-
-    <template id="message-template">
-      <article class="message">
-        <header class="message__head">
-          <span class="message__role"></span>
-          <div class="message__controls"></div>
-        </header>
-        <pre class="message__content"></pre>
-      </article>
-    </template>
 
     <script type="module" src="app.js"></script>
   </body>

@@ -15,30 +15,37 @@ const elements = {
   messages: document.getElementById("messages"),
   composer: document.getElementById("composer"),
   promptInput: document.getElementById("prompt-input"),
-  pendingIndicator: document.getElementById("pending-indicator"),
   redoBtn: document.getElementById("redo-btn"),
   stopAudioBtn: document.getElementById("stop-audio-btn"),
   status: document.getElementById("status"),
   temperatureInput: document.getElementById("temperature-input"),
   modelSelect: document.getElementById("model-select"),
   voiceSelect: document.getElementById("voice-select"),
-  systemPromptToggle: document.getElementById("system-prompt-toggle"),
-  systemPromptPanel: document.getElementById("system-prompt-panel"),
+  // Settings dialog
+  settingsBtn: document.getElementById("settings-btn"),
+  settingsDialog: document.getElementById("settings-dialog"),
+  settingsClose: document.getElementById("settings-close"),
   systemPromptInput: document.getElementById("system-prompt-input"),
   applySystemPromptBtn: document.getElementById("apply-system-prompt"),
   closeSystemPromptBtn: document.getElementById("close-system-prompt"),
   reminderPromptInput: document.getElementById("reminder-prompt-input"),
   reminderThresholdInput: document.getElementById("reminder-threshold-input"),
   ttsToggle: document.getElementById("tts-toggle"),
+  // Typing indicator
+  typingIndicator: document.getElementById("typing-indicator"),
+  // Chat header
+  chatHeaderName: document.getElementById("chat-header-name"),
+  chatHeaderStatus: document.getElementById("chat-header-status"),
+  chatHeaderAvatar: document.getElementById("chat-header-avatar"),
+  // Sidebar
   sidebar: document.querySelector(".sidebar"),
-  sidebarToggle: document.getElementById("sidebar-toggle"),
   appShell: document.querySelector(".app-shell"),
 };
 
 const state = {
   chats: [],
   activeChatId: null,
-  sidebarCollapsed: false,
+
   pending: false,
   temperature: 0.8,
   status: "",
@@ -57,8 +64,8 @@ let audioPlayer = null;
 
 function generateRandomSoftColor() {
   const hue = Math.floor(Math.random() * 360);
-  const saturation = 65; // Soft saturation
-  const lightness = 65;   // Soft lightness
+  const saturation = 65;
+  const lightness = 65;
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 }
 
@@ -67,17 +74,7 @@ document.addEventListener("DOMContentLoaded", init);
 async function init() {
   loadState();
   bindEvents();
-  bindSystemPromptEvents();
-  bindSidebarEvents();
-
-  // Apply initial sidebar state
-  updateSidebarUI();
-
-  // Initial check for responsive collapse
-  if (window.innerWidth < 768) {
-    state.sidebarCollapsed = true;
-    updateSidebarUI();
-  }
+  bindSettingsEvents();
 
   if (!state.chats.length) {
     const chat = createChat();
@@ -120,6 +117,7 @@ function bindEvents() {
     chat.messages.push(message);
     updateChatTitle(chat);
     elements.promptInput.value = "";
+    autoResizeTextarea(elements.promptInput);
     saveState();
     renderMessages();
     await requestAssistantResponse(chat);
@@ -153,6 +151,7 @@ function bindEvents() {
       localStorage.removeItem(MODEL_KEY);
     }
     updateControls();
+    updateChatHeader();
   });
 
   elements.voiceSelect.addEventListener("change", () => {
@@ -173,50 +172,51 @@ function bindEvents() {
     });
   }
 
+  // Auto-resize textarea
+  elements.promptInput.addEventListener("input", () => {
+    autoResizeTextarea(elements.promptInput);
+  });
+
   elements.promptInput.addEventListener("keydown", (event) => {
     if (event.key !== "Enter" || event.shiftKey) return;
     event.preventDefault();
     elements.composer.requestSubmit();
   });
+}
 
-  window.addEventListener("resize", () => {
-    if (window.innerWidth < 768 && !state.sidebarCollapsed) {
-      state.sidebarCollapsed = true;
-      updateSidebarUI();
-      saveState();
-    } else if (window.innerWidth >= 768 && state.sidebarCollapsed) {
-      state.sidebarCollapsed = false;
-      updateSidebarUI();
-      saveState();
-    }
+function autoResizeTextarea(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 128) + "px";
+}
+
+
+
+// ---------- Settings dialog (native <dialog>) ----------
+
+function bindSettingsEvents() {
+  elements.settingsBtn.addEventListener("click", () => {
+    renderSettingsForm();
+    elements.settingsDialog.showModal();
   });
-}
 
-function bindSidebarEvents() {
-  elements.sidebarToggle.addEventListener("click", () => {
-    state.sidebarCollapsed = !state.sidebarCollapsed;
-    updateSidebarUI();
-    saveState();
+  elements.settingsClose.addEventListener("click", () => {
+    elements.settingsDialog.close();
   });
-}
 
-function updateSidebarUI() {
-  elements.appShell.classList.toggle("sidebar-collapsed", state.sidebarCollapsed);
-}
-
-function bindSystemPromptEvents() {
-  elements.systemPromptToggle.addEventListener("click", () => {
-    const isHidden = elements.systemPromptPanel.classList.toggle("hidden");
-    if (!isHidden) {
-      renderSystemPrompt();
-      elements.systemPromptInput.focus();
+  elements.settingsDialog.addEventListener("click", (event) => {
+    // Close on backdrop click
+    if (event.target === elements.settingsDialog) {
+      elements.settingsDialog.close();
     }
   });
 
-  elements.applySystemPromptBtn.addEventListener("click", applySystemPrompt);
+  elements.applySystemPromptBtn.addEventListener("click", () => {
+    applySystemPrompt();
+    elements.settingsDialog.close();
+  });
 
   elements.closeSystemPromptBtn.addEventListener("click", () => {
-    elements.systemPromptPanel.classList.add("hidden");
+    elements.settingsDialog.close();
   });
 
   elements.ttsToggle.addEventListener("change", () => {
@@ -228,15 +228,23 @@ function bindSystemPromptEvents() {
   });
 }
 
+function renderSettingsForm() {
+  const chat = getActiveChat();
+  if (!chat) return;
+  const systemMessage = chat.messages.find((m) => m.role === "system");
+  elements.systemPromptInput.value = systemMessage ? systemMessage.content : "";
+  elements.reminderPromptInput.value = chat.reminderPrompt || "";
+  elements.reminderThresholdInput.value = chat.reminderThreshold ?? DEFAULT_REMINDER_THRESHOLD;
+  elements.ttsToggle.checked = chat.ttsEnabled !== false;
+}
+
 function loadState() {
   try {
     const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
     state.chats = stored.chats ?? [];
     state.activeChatId = stored.activeChatId ?? null;
-    state.sidebarCollapsed = stored.sidebarCollapsed ?? false;
 
-    // Ensure all chats have required properties (backward compat)
-    state.chats.forEach(chat => {
+    state.chats.forEach((chat) => {
       if (!chat.color) {
         chat.color = generateRandomSoftColor();
       }
@@ -249,8 +257,8 @@ function loadState() {
     state.chats = [];
   }
 
-  const savedTemp = parseFloat(localStorage.getItem(TEMP_KEY) || "0.7");
-  state.temperature = clamp(isNaN(savedTemp) ? 0.7 : savedTemp, 0, 1);
+  const savedTemp = parseFloat(localStorage.getItem(TEMP_KEY) || "0.8");
+  state.temperature = clamp(isNaN(savedTemp) ? 0.8 : savedTemp, 0, 1);
   state.model = localStorage.getItem(MODEL_KEY);
   state.voice = localStorage.getItem(VOICE_KEY);
 }
@@ -262,7 +270,6 @@ function saveState() {
       messages: chat.messages.map(({ audioUrl, ...rest }) => rest),
     })),
     activeChatId: state.activeChatId,
-    sidebarCollapsed: state.sidebarCollapsed,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
@@ -306,8 +313,7 @@ function render() {
   renderVoiceSelect();
   updateStatus();
   updateControls();
-  renderSystemPrompt();
-  renderChatSettings();
+  updateChatHeader();
 }
 
 function renderChatList() {
@@ -408,6 +414,10 @@ function saveChatTitle(chatId, newTitle) {
   state.editingChatId = null;
   state.editingChatValue = "";
   renderChatList();
+
+  if (state.activeChatId === chatId) {
+    updateChatHeader();
+  }
 }
 
 function deleteChat(chatId) {
@@ -431,21 +441,6 @@ function deleteChat(chatId) {
   render();
 }
 
-function renderSystemPrompt() {
-  const chat = getActiveChat();
-  if (!chat) return;
-  const systemMessage = chat.messages.find((m) => m.role === "system");
-  elements.systemPromptInput.value = systemMessage ? systemMessage.content : "";
-  elements.reminderPromptInput.value = chat.reminderPrompt || "";
-  elements.reminderThresholdInput.value = chat.reminderThreshold ?? DEFAULT_REMINDER_THRESHOLD;
-}
-
-function renderChatSettings() {
-  const chat = getActiveChat();
-  if (!chat) return;
-  elements.ttsToggle.checked = chat.ttsEnabled !== false;
-}
-
 function applySystemPrompt() {
   const chat = getActiveChat();
   if (!chat) return;
@@ -465,20 +460,14 @@ function applySystemPrompt() {
     });
   }
 
-  // Save reminder settings
   chat.reminderPrompt = elements.reminderPromptInput.value.trim();
   chat.reminderThreshold = Math.max(0, parseInt(elements.reminderThresholdInput.value, 10) || DEFAULT_REMINDER_THRESHOLD);
 
   saveState();
   render();
-  elements.systemPromptPanel.classList.add("hidden");
-  setStatus("System prompt applied.", false);
+  setStatus("Settings applied.", false);
 }
 
-/**
- * Estimate token count for the conversation using a simple chars/4 heuristic.
- * Counts only user and assistant messages (not the system prompt).
- */
 function estimateTokenCount(chat) {
   let totalChars = 0;
   for (const msg of chat.messages) {
@@ -489,6 +478,19 @@ function estimateTokenCount(chat) {
   return Math.round(totalChars / 4);
 }
 
+// ---------- Chat Header ----------
+
+function updateChatHeader() {
+  const chat = getActiveChat();
+  const title = chat ? (chat.title || "New chat") : "Assistant";
+  const model = state.model || "No model";
+  const truncated = model.length > 50 ? model.slice(0, 47) + "…" : model;
+  elements.chatHeaderName.textContent = title;
+  elements.chatHeaderStatus.textContent = truncated;
+}
+
+// ---------- Messages ----------
+
 function renderMessages() {
   const chat = getActiveChat();
   elements.messages.innerHTML = "";
@@ -497,62 +499,28 @@ function renderMessages() {
   chat.messages
     .filter((message) => message.role !== "system")
     .forEach((message) => {
-      const article = document.createElement("article");
       const isEditing = state.editingMessageId === message.id;
+      const isUser = message.role === "user";
+
+      const article = document.createElement("article");
       article.className = `message message--${message.role}`;
       if (isEditing) {
         article.classList.add("message--editing");
       }
 
-      const head = document.createElement("header");
-      head.className = "message__head";
-      const roleLabel = document.createElement("span");
-      roleLabel.className = "message__role";
-      roleLabel.textContent =
-        message.role === "assistant" ? "Assistant" : "You";
-      head.appendChild(roleLabel);
+      // Avatar
+      const avatar = document.createElement("div");
+      avatar.className = "message__avatar";
+      avatar.innerHTML = isUser
+        ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:65%;height:65%"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+        : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:65%;height:65%"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>`;
 
-      const controls = document.createElement("div");
-      controls.className = "message__controls";
-
-      if (isEditing) {
-        controls.classList.add("message__controls--editing");
-        controls.textContent = "Editing…";
-      } else {
-        if (message.role === "assistant") {
-          const speakBtn = document.createElement("button");
-          speakBtn.className = "btn ghost";
-          speakBtn.textContent = "Speak";
-          speakBtn.addEventListener("click", () =>
-            speakAssistantMessage(message.id)
-          );
-          controls.appendChild(speakBtn);
-
-          const copyBtn = document.createElement("button");
-          copyBtn.className = "btn ghost";
-          copyBtn.textContent = "Copy";
-          copyBtn.addEventListener("click", () => copyMessage(message.content));
-          controls.appendChild(copyBtn);
-        }
-
-        const editBtn = document.createElement("button");
-        editBtn.className = "btn ghost";
-        editBtn.textContent = "Edit";
-        editBtn.addEventListener("click", () => startEditingMessage(message.id));
-        controls.appendChild(editBtn);
-
-        const branchBtn = document.createElement("button");
-        branchBtn.className = "btn ghost";
-        branchBtn.textContent = "Branch";
-        branchBtn.addEventListener("click", () =>
-          branchChatFromMessage(message.id)
-        );
-        controls.appendChild(branchBtn);
-      }
-
-      head.appendChild(controls);
+      // Bubble
+      const bubble = document.createElement("div");
+      bubble.className = "message__bubble";
 
       if (isEditing) {
+        // Editor inside bubble
         const editor = document.createElement("textarea");
         const editingValue = state.editingValue ?? "";
         editor.className = "message__editor";
@@ -577,29 +545,54 @@ function renderMessages() {
 
         const cancelBtn = document.createElement("button");
         cancelBtn.type = "button";
-        cancelBtn.className = "btn ghost";
+        cancelBtn.className = "btn ghost small";
         cancelBtn.textContent = "Cancel";
         cancelBtn.addEventListener("click", cancelEditingMessage);
 
         const saveBtn = document.createElement("button");
         saveBtn.type = "button";
-        saveBtn.className = "btn primary";
+        saveBtn.className = "btn primary small";
         saveBtn.textContent = "Save";
         saveBtn.addEventListener("click", saveEditedMessage);
 
         actions.append(cancelBtn, saveBtn);
-        article.append(head, editor, actions);
+        bubble.append(editor, actions);
       } else {
+        // Content
         const content = document.createElement("div");
         content.className = "message__content message__content--markdown";
         content.innerHTML = parseMarkdown(message.content);
-        article.append(head, content);
+        bubble.appendChild(content);
+
+        // Action buttons (inside bubble, shown on hover)
+        const actionsBar = document.createElement("div");
+        actionsBar.className = "message__actions";
+
+        if (!isUser) {
+          actionsBar.appendChild(createActionBtn("🔊", "Speak", () => speakAssistantMessage(message.id)));
+        }
+        actionsBar.appendChild(createActionBtn("📋", "Copy", () => copyMessage(message.content)));
+        actionsBar.appendChild(createActionBtn("✏️", "Edit", () => startEditingMessage(message.id)));
+        actionsBar.appendChild(createActionBtn("🔀", "Branch", () => branchChatFromMessage(message.id)));
+
+        bubble.appendChild(actionsBar);
       }
 
+      article.append(avatar, bubble);
       elements.messages.appendChild(article);
     });
 
   elements.messages.scrollTop = elements.messages.scrollHeight;
+}
+
+function createActionBtn(emoji, title, handler) {
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "message__action-btn";
+  btn.textContent = emoji;
+  btn.title = title;
+  btn.addEventListener("click", handler);
+  return btn;
 }
 
 function updateStatus() {
@@ -607,22 +600,34 @@ function updateStatus() {
 }
 
 function updateControls() {
-  elements.pendingIndicator.classList.toggle("hidden", !state.pending);
+  // Typing indicator
+  if (elements.typingIndicator) {
+    elements.typingIndicator.classList.toggle("hidden", !state.pending);
+  }
+
   const noModel = !state.model;
   const chat = getActiveChat();
   const ttsEnabled = chat ? chat.ttsEnabled !== false : true;
   const noVoice = !state.voice && ttsEnabled;
+
   elements.redoBtn.disabled = state.pending || noModel || (ttsEnabled && !state.voice) || !canRedo();
+
   const disabled = state.pending || noModel || (ttsEnabled && !state.voice);
   elements.promptInput.disabled = disabled;
-  elements.composer.querySelector("button[type=submit]").disabled = disabled;
+  const sendBtn = elements.composer.querySelector(".composer__send-btn");
+  if (sendBtn) sendBtn.disabled = disabled;
+
   elements.modelSelect.disabled = !state.models.length;
   elements.voiceSelect.disabled = !state.voices.length;
+
   if (elements.stopAudioBtn) {
     elements.stopAudioBtn.disabled = !state.audioPlaying;
   }
-  // Dim the voice select when TTS is disabled
-  elements.voiceSelect.closest('.voice-control').style.opacity = ttsEnabled ? '' : '0.4';
+
+  // Scroll to bottom when pending starts
+  if (state.pending) {
+    elements.messages.scrollTop = elements.messages.scrollHeight;
+  }
 }
 
 function canRedo() {
@@ -649,7 +654,6 @@ async function requestAssistantResponse(chat) {
   setStatus("");
 
   try {
-    // Find the last assistant response ID in the current thread to use as previous_response_id
     let previousResponseId = null;
     for (let i = chat.messages.length - 1; i >= 0; i--) {
       const msg = chat.messages[i];
@@ -659,8 +663,7 @@ async function requestAssistantResponse(chat) {
       }
     }
 
-    // Directly extract the latest user message.
-    const lastUserMessage = chat.messages.filter(m => m.role === "user").pop();
+    const lastUserMessage = chat.messages.filter((m) => m.role === "user").pop();
 
     const payload = {
       input_text: lastUserMessage ? lastUserMessage.content : "",
@@ -668,16 +671,14 @@ async function requestAssistantResponse(chat) {
       model: state.model,
       voice: ttsEnabled ? state.voice : null,
       previous_response_id: previousResponseId,
-      tts_enabled: ttsEnabled
+      tts_enabled: ttsEnabled,
     };
 
-    // Always send the system prompt so mid-conversation updates are applied immediately.
-    const systemPromptMessage = chat.messages.find(m => m.role === "system");
+    const systemPromptMessage = chat.messages.find((m) => m.role === "system");
     if (systemPromptMessage) {
       payload.system_prompt = systemPromptMessage.content;
     }
 
-    // Inject reminder prompt if token threshold is exceeded
     const estimatedTokens = estimateTokenCount(chat);
     if (chat.reminderPrompt && chat.reminderThreshold > 0 && estimatedTokens >= chat.reminderThreshold) {
       payload.reminder_prompt = chat.reminderPrompt;
@@ -699,7 +700,7 @@ async function requestAssistantResponse(chat) {
       content: (data.content || "").trim(),
       createdAt: new Date().toISOString(),
       voice: data.voice || state.voice,
-      responseId: data.response_id
+      responseId: data.response_id,
     };
     if (ttsEnabled && data.audio) {
       assistantMessage.audioUrl = `data:audio/wav;base64,${data.audio}`;
@@ -910,6 +911,9 @@ function branchChatFromMessage(messageId) {
     title: chat.title,
     color: generateRandomSoftColor(),
     createdAt: new Date().toISOString(),
+    ttsEnabled: chat.ttsEnabled,
+    reminderPrompt: chat.reminderPrompt,
+    reminderThreshold: chat.reminderThreshold,
     messages: chat.messages.slice(0, index + 1).map((message) => ({ ...message })),
   };
 
@@ -924,14 +928,30 @@ function branchChatFromMessage(messageId) {
   setStatus("Branched chat created.", false);
 }
 
-function setStatus(message, isError = true) {
+let statusTimeout = null;
+
+function setStatus(message, isError = true, timeoutMs = 5000) {
   state.status = message;
   elements.status.innerHTML = message || "";
+
+  if (statusTimeout) {
+    clearTimeout(statusTimeout);
+    statusTimeout = null;
+  }
+
   if (!message) {
-    elements.status.style.color = "#94a3b8";
+    elements.status.style.color = "var(--text-muted)";
     return;
   }
-  elements.status.style.color = isError ? "#f87171" : "#4ade80";
+
+  elements.status.style.color = isError ? "#ea4335" : "var(--accent)";
+
+  // Auto-clear most messages after 5 seconds, unless it contains a loader or timeout is disabled
+  if (timeoutMs > 0 && !message.includes("loader")) {
+    statusTimeout = setTimeout(() => {
+      setStatus("");
+    }, timeoutMs);
+  }
 }
 
 function clamp(value, min, max) {
@@ -970,6 +990,7 @@ async function refreshModels() {
   } finally {
     renderModelSelect();
     updateControls();
+    updateChatHeader();
   }
 }
 
@@ -1062,7 +1083,9 @@ function renderVoiceSelect() {
   sortedVoices.forEach((voice) => {
     const option = document.createElement("option");
     option.value = voice.name;
-    const label = voice.gender ? `${voice.gender === "male" ? "♂️" : voice.gender === "female" ? "♀️" : "?"} · ${voice.name}` : voice.name;
+    const label = voice.gender
+      ? `${voice.gender === "male" ? "♂️" : voice.gender === "female" ? "♀️" : "?"} · ${voice.name}`
+      : voice.name;
     option.textContent = `${label} (${voice.lang_code})`;
     select.appendChild(option);
   });
@@ -1074,7 +1097,6 @@ function renderVoiceSelect() {
 function parseMarkdown(text) {
   if (!text) return "";
 
-  // 1. Escape HTML to prevent XSS
   let html = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -1082,30 +1104,19 @@ function parseMarkdown(text) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-  // 2. Code blocks (```code```)
   html = html.replace(/```(?:[a-z]*\n)?([\s\S]*?)```/gm, '<pre class="code-block"><code>$1</code></pre>');
-
-  // 3. Inline code (`code`)
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-
-  // 4. Headings
+  html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
   html = html.replace(/^### (.*$)/gim, "<h3>$1</h3>");
   html = html.replace(/^## (.*$)/gim, "<h2>$1</h2>");
   html = html.replace(/^# (.*$)/gim, "<h1>$1</h1>");
-
-  // 5. Bold
   html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-
-  // 6. Italic
   html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
 
-  // 7. Paragraphs and line breaks
   const paragraphs = html.split(/\n\s*\n/);
   return paragraphs
-    .map(p => {
+    .map((p) => {
       p = p.trim();
       if (!p) return "";
-      // If it starts with a block tag, return as is
       if (/^<(h[1-3]|pre)/i.test(p)) return p;
       return `<p>${p.replace(/\n/g, "<br>")}</p>`;
     })
