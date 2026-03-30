@@ -5,6 +5,7 @@ const MODEL_KEY = "kokoro_model";
 const BOT_AVATAR_KEY = "kokoro_bot_avatar";
 const USER_AVATAR_KEY = "kokoro_user_avatar";
 
+const DEFAULT_VOICE = "af_nicole";
 const DEFAULT_SYSTEM_PROMPT =
   "You are a helpful AI assistant who responds concisely and clearly. Keep answers friendly and readable. Make sure your answers are suitable to be read aloud by a text-to-speech engine.";
 
@@ -112,7 +113,7 @@ async function init() {
 function bindEvents() {
   elements.newChatBtn.addEventListener("click", () => {
     const chat = createChat();
-    state.chats.unshift(chat);
+    state.chats.push(chat);
     state.activeChatId = chat.id;
     saveState();
     render();
@@ -1179,6 +1180,7 @@ async function refreshVoices() {
   } finally {
     renderVoiceSelect();
     updateControls();
+    updateChatHeader();
   }
 }
 

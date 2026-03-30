@@ -14,6 +14,7 @@ import torch
 import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_squeeze import Squeeze
 from kokoro import KModel, KPipeline
 from openai import OpenAI
 
@@ -97,8 +98,10 @@ def _parse_voice_catalog(path: Path, fallback_lang: str) -> Dict[str, Dict[str, 
 
 
 # ---------- App + Clients ----------
+squeeze = Squeeze()
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path="")
 CORS(app)
+squeeze.init_app(app)
 
 client = OpenAI(base_url=LMSTUDIO_BASE_URL, api_key=LMSTUDIO_API_KEY)
 

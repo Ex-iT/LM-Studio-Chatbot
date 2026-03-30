@@ -376,6 +376,10 @@ body {
   border-color: var(--accent);
 }
 
+.settings-row input[type="number"] {
+  flex: none;
+}
+
 .settings-row select option {
   background: var(--bg-sidebar);
   color: var(--text-primary);

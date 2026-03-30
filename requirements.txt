@@ -6,3 +6,4 @@ openai
 sounddevice
 torch
 requests
+Flask-Squeeze
