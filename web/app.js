@@ -42,6 +42,12 @@ const elements = {
   globalSettingsDialog: document.getElementById("global-settings-dialog"),
   globalSettingsClose: document.getElementById("global-settings-close"),
   closeGlobalSettingsBtn: document.getElementById("close-global-settings"),
+  // Remove chat dialog
+  removeChatDialog: document.getElementById("remove-chat-dialog"),
+  removeChatDialogClose: document.getElementById("remove-chat-dialog-close"),
+  closeChatDialogBtn: document.getElementById("close-chat-dialog"),
+  confirmChatDialogBtn: document.getElementById("confirm-chat-dialog"),
+  chatTitle: document.getElementById("chat-title"),
   // Typing indicator
   typingIndicator: document.getElementById("typing-indicator"),
   // Chat header
@@ -322,6 +328,20 @@ function bindSettingsEvents() {
     elements.userAvatarPreview.innerHTML = DEFAULT_USER_SVG;
     renderMessages();
   });
+
+  // --- Remove Chat Dialog ---
+  elements.removeChatDialogClose.addEventListener("click", () => {
+    elements.removeChatDialog.close();
+  });
+
+  elements.closeChatDialogBtn.addEventListener("click", () => {
+    elements.removeChatDialog.close();
+  });
+
+  elements.confirmChatDialogBtn.addEventListener("click", () => {
+    deleteChat(state.activeChatId);
+    elements.removeChatDialog.close();
+  })
 }
 
 function resizeImage(file, maxSize = 128) {
@@ -476,7 +496,8 @@ function renderChatList() {
     deleteBtn.title = "Delete chat";
     deleteBtn.addEventListener("click", (event) => {
       event.stopPropagation();
-      deleteChat(chat.id);
+      elements.chatTitle.textContent = chat.title;
+      elements.removeChatDialog.showModal();
     });
 
     const container = document.createElement("div");
@@ -558,8 +579,6 @@ function saveChatTitle(chatId, newTitle) {
 function deleteChat(chatId) {
   const index = state.chats.findIndex((c) => c.id === chatId);
   if (index === -1) return;
-
-  if (!confirm(`Are you sure you want to delete chat "${state.chats[index].title}"?`)) return;
 
   state.chats.splice(index, 1);
 

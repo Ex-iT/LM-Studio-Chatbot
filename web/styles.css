@@ -18,6 +18,10 @@
   --accent-hover: #06cf9c;
   --accent-muted: rgba(0, 168, 132, 0.2);
 
+  /* Danger */
+  --danger: #e94560;
+  --danger-hover: #ff6b6b;
+
   /* Text */
   --text-primary: #e9edef;
   --text-secondary: #8696a0;
@@ -1180,6 +1184,16 @@ body {
 .btn.small {
   padding: 0.3rem 0.6rem;
   font-size: 0.8rem;
+}
+
+.btn.danger {
+  background: var(--danger);
+  color: var(--bg-app);
+  font-weight: 600;
+}
+
+.btn.danger:hover {
+  background: var(--danger-hover);
 }
 
 /* ========================================
