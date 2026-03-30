@@ -36,6 +36,11 @@ const elements = {
   reminderPromptInput: document.getElementById("reminder-prompt-input"),
   reminderThresholdInput: document.getElementById("reminder-threshold-input"),
   ttsToggle: document.getElementById("tts-toggle"),
+  // Global Settings dialog
+  globalSettingsBtn: document.getElementById("global-settings-btn"),
+  globalSettingsDialog: document.getElementById("global-settings-dialog"),
+  globalSettingsClose: document.getElementById("global-settings-close"),
+  closeGlobalSettingsBtn: document.getElementById("close-global-settings"),
   // Typing indicator
   typingIndicator: document.getElementById("typing-indicator"),
   // Chat header
@@ -176,6 +181,7 @@ function bindEvents() {
       localStorage.removeItem(VOICE_KEY);
     }
     updateControls();
+    updateChatHeader();
   });
 
   if (elements.stopAudioBtn) {
@@ -207,6 +213,7 @@ function autoResizeTextarea(el) {
 // ---------- Settings dialog (native <dialog>) ----------
 
 function bindSettingsEvents() {
+  // --- Chat Settings ---
   elements.settingsBtn.addEventListener("click", () => {
     renderSettingsForm();
     elements.settingsDialog.showModal();
@@ -214,6 +221,25 @@ function bindSettingsEvents() {
 
   elements.settingsClose.addEventListener("click", () => {
     elements.settingsDialog.close();
+  });
+
+  elements.settingsDialog.addEventListener("click", (event) => {
+    if (event.target === elements.settingsDialog) {
+      elements.settingsDialog.close();
+    }
+  });
+
+  // --- Global Settings ---
+  elements.globalSettingsBtn.addEventListener("click", () => {
+    elements.globalSettingsDialog.showModal();
+  });
+
+  elements.globalSettingsClose.addEventListener("click", () => {
+    elements.globalSettingsDialog.close();
+  });
+
+  elements.closeGlobalSettingsBtn.addEventListener("click", () => {
+    elements.globalSettingsDialog.close();
   });
 
   elements.applySystemPromptBtn.addEventListener("click", () => {
@@ -596,7 +622,7 @@ function updateChatHeader() {
   const fullStatus = modelPart + voicePart;
   const truncated = fullStatus.length > 60 ? fullStatus.slice(0, 57) + "…" : fullStatus;
   elements.chatHeaderName.textContent = title;
-  
+
   if (chat && !chat.ttsEnabled) {
     elements.chatHeaderTtsStatus.classList.remove("hidden");
   } else {
