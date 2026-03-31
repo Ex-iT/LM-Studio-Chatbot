@@ -147,6 +147,7 @@ function bindEvents() {
     saveState();
     renderMessages();
     await requestAssistantResponse(chat);
+    elements.promptInput.focus();
   });
 
   elements.redoBtn.addEventListener("click", async () => {
@@ -489,6 +490,7 @@ function renderChatList() {
       state.activeChatId = chat.id;
       saveState();
       render();
+      elements.promptInput.focus();
     });
 
     const deleteBtn = document.createElement("button");
