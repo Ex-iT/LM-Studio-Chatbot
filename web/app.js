@@ -42,12 +42,12 @@ const elements = {
   globalSettingsDialog: document.getElementById("global-settings-dialog"),
   globalSettingsClose: document.getElementById("global-settings-close"),
   closeGlobalSettingsBtn: document.getElementById("close-global-settings"),
-  // Remove chat dialog
-  removeChatDialog: document.getElementById("remove-chat-dialog"),
-  removeChatDialogClose: document.getElementById("remove-chat-dialog-close"),
-  closeChatDialogBtn: document.getElementById("close-chat-dialog"),
-  confirmChatDialogBtn: document.getElementById("confirm-chat-dialog"),
-  chatTitle: document.getElementById("chat-title"),
+  // Delete chat dialog
+  deleteChatDialog: document.getElementById("delete-chat-dialog"),
+  deleteChatDialogClose: document.getElementById("delete-chat-dialog-close"),
+  closeDeleteChatDialogBtn: document.getElementById("close-delete-chat-dialog"),
+  confirmDeleteChatDialogBtn: document.getElementById("confirm-delete-chat-dialog"),
+  deleteChatTitle: document.getElementById("delete-chat-title"),
   // Typing indicator
   typingIndicator: document.getElementById("typing-indicator"),
   // Chat header
@@ -83,6 +83,7 @@ const state = {
   editingValue: "",
   editingChatId: null,
   editingChatValue: "",
+  deleteChatId: null,
 };
 
 let audioPlayer = null;
@@ -330,17 +331,17 @@ function bindSettingsEvents() {
   });
 
   // --- Remove Chat Dialog ---
-  elements.removeChatDialogClose.addEventListener("click", () => {
-    elements.removeChatDialog.close();
+  elements.deleteChatDialogClose.addEventListener("click", () => {
+    elements.deleteChatDialog.close();
   });
 
-  elements.closeChatDialogBtn.addEventListener("click", () => {
-    elements.removeChatDialog.close();
+  elements.closeDeleteChatDialogBtn.addEventListener("click", () => {
+    elements.deleteChatDialog.close();
   });
 
-  elements.confirmChatDialogBtn.addEventListener("click", () => {
-    deleteChat(state.activeChatId);
-    elements.removeChatDialog.close();
+  elements.confirmDeleteChatDialogBtn.addEventListener("click", () => {
+    deleteChat(state.deleteChatId);
+    elements.deleteChatDialog.close();
   })
 }
 
@@ -496,8 +497,9 @@ function renderChatList() {
     deleteBtn.title = "Delete chat";
     deleteBtn.addEventListener("click", (event) => {
       event.stopPropagation();
-      elements.chatTitle.textContent = chat.title;
-      elements.removeChatDialog.showModal();
+      elements.deleteChatTitle.textContent = chat.title;
+      state.deleteChatId = chat.id;
+      elements.deleteChatDialog.showModal();
     });
 
     const container = document.createElement("div");
@@ -581,6 +583,7 @@ function deleteChat(chatId) {
   if (index === -1) return;
 
   state.chats.splice(index, 1);
+  state.deleteChatId = null;
 
   if (state.activeChatId === chatId) {
     state.activeChatId = state.chats[0]?.id || null;

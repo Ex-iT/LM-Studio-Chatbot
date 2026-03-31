@@ -697,7 +697,7 @@ body {
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(2px);
   display: flex;
-  align-items: center;
+  align-items: baseline;
 }
 
 .status:not(:empty) {
