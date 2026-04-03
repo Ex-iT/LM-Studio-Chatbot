@@ -873,7 +873,6 @@ async function requestAssistantResponse(chat) {
       content: (data.content || "").trim(),
       createdAt: new Date().toISOString(),
       voice: data.voice || state.voice,
-      responseId: data.response_id,
     };
     if (ttsEnabled && data.audio) {
       assistantMessage.audioUrl = `data:audio/wav;base64,${data.audio}`;

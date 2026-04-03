@@ -313,7 +313,6 @@ def chat():
         )
 
         content = completion.choices[0].message.content or ""
-        response_id = completion.id
 
     except RuntimeError as exc:
         return jsonify({"error": str(exc)}), 503
@@ -334,8 +333,7 @@ def chat():
     result = {
         "content": content,
         "model": model_name,
-        "voice": resolved_voice,
-        "response_id": response_id
+        "voice": resolved_voice
     }
     if audio_b64:
         result["audio"] = audio_b64
