@@ -458,6 +458,8 @@ function getActiveChat() {
 }
 
 function updateChatTitle(chat) {
+  if (chat.customTitle) return;
+
   const firstUser = chat.messages.find((m) => m.role === "user");
   if (firstUser) {
     chat.title = firstUser.content.trim() || "Untitled chat";
@@ -569,6 +571,7 @@ function saveChatTitle(chatId, newTitle) {
   const chat = state.chats.find((c) => c.id === chatId);
   if (chat && newTitle && newTitle !== chat.title) {
     chat.title = newTitle;
+    chat.customTitle = true;
     saveState();
   }
 
