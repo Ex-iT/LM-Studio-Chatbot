@@ -4,6 +4,7 @@ const VOICE_KEY = "kokoro_voice";
 const MODEL_KEY = "kokoro_model";
 const BOT_AVATAR_KEY = "kokoro_bot_avatar";
 const USER_AVATAR_KEY = "kokoro_user_avatar";
+const HISTORY_LIMIT = 25;
 
 const DEFAULT_VOICE = "af_nicole";
 const DEFAULT_SYSTEM_PROMPT =
@@ -831,30 +832,25 @@ async function requestAssistantResponse(chat) {
   setStatus("");
 
   try {
-    let previousResponseId = null;
-    for (let i = chat.messages.length - 1; i >= 0; i--) {
-      const msg = chat.messages[i];
-      if (msg.role === "assistant" && msg.responseId) {
-        previousResponseId = msg.responseId;
-        break;
-      }
+    const systemPromptMessage = chat.messages.find((m) => m.role === "system");
+    const otherMessages = chat.messages.filter((m) => m.role !== "system");
+    const recentMessages = otherMessages.slice(-HISTORY_LIMIT);
+
+    const formattedMessages = [];
+    if (systemPromptMessage) {
+      formattedMessages.push({ role: systemPromptMessage.role, content: systemPromptMessage.content });
+    }
+    for (const m of recentMessages) {
+      formattedMessages.push({ role: m.role, content: m.content });
     }
 
-    const lastUserMessage = chat.messages.filter((m) => m.role === "user").pop();
-
     const payload = {
-      input_text: lastUserMessage ? lastUserMessage.content : "",
+      messages: formattedMessages,
       temperature: state.temperature,
       model: state.model,
       voice: ttsEnabled ? state.voice : null,
-      previous_response_id: previousResponseId,
       tts_enabled: ttsEnabled,
     };
-
-    const systemPromptMessage = chat.messages.find((m) => m.role === "system");
-    if (systemPromptMessage) {
-      payload.system_prompt = systemPromptMessage.content;
-    }
 
     const estimatedTokens = estimateTokenCount(chat);
     if (chat.reminderPrompt && chat.reminderThreshold > 0 && estimatedTokens >= chat.reminderThreshold) {
